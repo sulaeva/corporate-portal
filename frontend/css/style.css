@@ -1,0 +1,423 @@
+/* ==================== ОСНОВНЫЕ СТИЛИ ==================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* ТВОЙ ФИРМЕННЫЙ ЦВЕТ */
+    --primary: #40E0D0;
+    --primary-dark: #20B2AA; /* Темнее для наведения */
+    --primary-light: #AFEEEE; /* Светлее для фона */
+
+    /* Строгий фон */
+    --bg-body: #f4f6f9;
+    --bg-card: #ffffff;
+
+    /* Текст */
+    --text-main: #2c3e50;
+    --text-muted: #6c757d;
+    --text-light: #ecf0f1;
+
+    /* Навигация */
+    --navbar-bg: #1a252f;
+
+    /* Рамки */
+    --border-color: #dee2e6;
+}
+
+body {
+    font-family: 'Segoe UI', Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+/* ==================== НАВИГАЦИЯ ==================== */
+.navbar {
+    background: var(--navbar-bg) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 0.8rem 0;
+}
+
+.navbar .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.logo {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary) !important; /* Логотип твоим цветом */
+    text-decoration: none;
+    letter-spacing: 0.5px;
+    transition: opacity 0.2s;
+}
+
+.logo:hover {
+    opacity: 0.9;
+}
+
+.nav-links {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.nav-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: var(--text-light);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.nav-btn:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.nav-btn.logout {
+    background: transparent;
+    border: 1px solid #dc3545;
+    color: #dc3545;
+}
+
+.nav-btn.logout:hover {
+    background: #dc3545;
+    color: #fff;
+}
+
+/* ==================== КОНТЕЙНЕРЫ ==================== */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.main-content {
+    background: var(--bg-card);
+    margin-top: 30px;
+    border-radius: 12px;
+    padding: 30px;
+    min-height: calc(100vh - 180px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
+}
+
+/* ==================== СЕКЦИИ И ЗАГОЛОВКИ ==================== */
+.section {
+    margin-bottom: 30px;
+}
+
+.section h2 {
+    color: var(--text-main);
+    margin-bottom: 20px;
+    font-size: 1.6rem;
+    font-weight: 700;
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 10px;
+    display: inline-block;
+}
+
+h1, h3, h4, h5 {
+    color: var(--text-main);
+    margin-bottom: 15px;
+    font-weight: 700;
+}
+
+h1 { font-size: 1.8rem; }
+
+/* ==================== ФОРМЫ ==================== */
+label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    color: var(--text-main);
+    background-color: #fff;
+    transition: all 0.3s ease;
+}
+
+/* Эффект при фокусе (Твой цвет!) */
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(64, 224, 208, 0.2);
+}
+
+textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+/* ==================== КНОПКИ ==================== */
+.btn-primary,
+.btn-success,
+.btn-danger,
+.btn-secondary,
+.btn-warning,
+.btn-edit,
+.btn-delete {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Главная кнопка - Твой цвет */
+.btn-primary {
+    background: var(--primary);
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(64, 224, 208, 0.3);
+}
+
+.btn-success { background: #28a745; color: white; }
+.btn-success:hover { background: #218838; transform: translateY(-2px); }
+
+.btn-danger, .btn-delete { background: #dc3545; color: white; }
+.btn-danger:hover, .btn-delete:hover { background: #c82333; transform: translateY(-2px); }
+
+.btn-secondary { background: #6c757d; color: white; }
+.btn-secondary:hover { background: #5a6268; transform: translateY(-2px); }
+
+.btn-warning { background: #ffc107; color: #333; }
+.btn-warning:hover { background: #e0a800; transform: translateY(-2px); }
+
+.btn-edit {
+    background: var(--primary);
+    color: white;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+}
+
+/* ==================== КАРТОЧКИ ==================== */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 25px;
+    margin-top: 20px;
+}
+
+.card {
+    background: var(--bg-card);
+    border: none;
+    border-top: 4px solid var(--primary); /* Акцент сверху */
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.08);
+}
+
+.card h3 {
+    color: var(--text-main);
+    margin-bottom: 15px;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.card p {
+    color: var(--text-muted);
+    margin: 8px 0;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.card-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+/* ==================== МОДАЛЬНЫЕ ОКНА ==================== */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(26, 37, 47, 0.7); /* Темнее фон */
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background: var(--bg-card);
+    margin: 5% auto;
+    padding: 30px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 550px;
+    position: relative;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+    animation: slideDown 0.3s ease-out;
+    border-top: 5px solid var(--primary);
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.close {
+    position: absolute;
+    right: 20px;
+    top: 15px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color 0.2s;
+}
+
+.close:hover {
+    color: #dc3545;
+}
+
+/* ==================== СТРАНИЦЫ АВТОРИЗАЦИИ ==================== */
+.auth-page, body.login-body, body.register-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    background-color: var(--bg-body); /* Вместо градиента */
+}
+
+.auth-container {
+    background: var(--bg-card);
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+    border-top: 5px solid var(--primary);
+}
+
+.auth-container h1 {
+    color: var(--text-main);
+    margin-bottom: 10px;
+    font-size: 1.8rem;
+}
+
+.auth-container h2 {
+    color: var(--text-muted);
+    margin-bottom: 30px;
+    font-size: 1rem;
+    font-weight: normal;
+}
+
+.auth-link {
+    margin-top: 25px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.auth-link a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-link a:hover {
+    text-decoration: underline;
+    color: var(--primary-dark);
+}
+
+/* ==================== УТИЛИТЫ ==================== */
+.text-muted { color: var(--text-muted) !important; }
+.text-danger { color: #dc3545 !important; }
+.fw-bold { font-weight: bold !important; }
+.mt-3 { margin-top: 1rem !important; }
+.mb-3 { margin-bottom: 1rem !important; }
+.d-block { display: block !important; }
+.small { font-size: 0.875em !important; }
+
+/* ==================== АДАПТИВНОСТЬ ==================== */
+@media (max-width: 768px) {
+    .navbar .container {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .nav-links {
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .cards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-content {
+        width: 95%;
+        margin: 10% auto;
+        padding: 20px;
+    }
+
+    .card-actions {
+        flex-direction: column;
+    }
+
+    .btn-edit, .btn-delete {
+        width: 100%;
+    }
+}

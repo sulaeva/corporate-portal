@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% block title %}{{ team.name }} - Управление{% endblock %}
+
+{% block content %}
+<!-- Заголовок -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="page-header mb-0">
+        <div class="page-icon"><i class="bi bi-people-fill"></i></div>
+        <div class="page-title">
+            <h1>{{ team.name }}</h1>
+            <p>Управление командой и участниками</p>
+        </div>
+    </div>
+    <a href="{% url 'my_teams_list' %}" class="btn-custom btn-outline-custom">
+        <i class="bi bi-arrow-left"></i> Назад к списку
+    </a>
+</div>
+
+<!-- Сообщения об успехе/ошибке -->
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-3 shadow-sm border-0" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="row">
+    <!-- Левая колонка: Информация о команде + Форма добавления -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-3 text-uppercase small text-muted">О команде</h5>
+
+                <p class="mb-4">{{ team.description|linebreaksbr|default:"Описание отсутствует." }}</p>
+
+                <hr>
+
+                <div class="mb-3">
+                    <small class="text-muted d-block">Лидер команды</small>
+                    <strong>{{ team.manager.username }}</strong>
+                </div>
+
+                <div class="mb-3">
+                    <small class="text-muted d-block">Дата создания</small>
+                    <strong>{{ team.created_at|date:"d E Y" }}</strong>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- ФОРМА ДОБАВЛЕНИЯ УЧАСТНИКА -->
+                <h6 class="fw-bold mb-3">Добавить сотрудника</h6>
+                {% if available_employees %}
+                <form method="post" class="mb-3">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                        <select name="add_member_id" class="form-select form-select-sm">
+                            <option value="" selected disabled>Выберите сотрудника...</option>
+                            {% for employee in available_employees %}
+                                <option value="{{ employee.id }}">{{ employee.username }} ({{ employee.email }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-navy w-100">
+                        <i class="bi bi-person-plus"></i> Добавить
+                    </button>
+                </form>
+                {% else %}
+                <p class="text-muted small">Нет доступных сотрудников для добавления.</p>
+                {% endif %}
+                <!-- КОНЕЦ ФОРМЫ -->
+
+                <!-- ИСПРАВЛЕНО: ФОРМА УДАЛЕНИЯ КОМАНДЫ -->
+                <div class="mt-4 pt-3 border-top">
+                    <form method="post" action="{% url 'team_delete' team.id %}" onsubmit="return confirm('Вы уверены, что хотите удалить команду «{{ team.name }}»? Это действие нельзя отменить.');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger w-100">
+                            <i class="bi bi-trash"></i> Удалить команду
+                        </button>
+                    </form>
+                </div>
+                <!-- КОНЕЦ ФОРМЫ УДАЛЕНИЯ -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Правая колонка: Список участников -->
+    <div class="col-lg-8 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0 py-3 px-4">
+                <h5 class="mb-0 fw-bold">Участники команды ({{ members.count }})</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if members %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Пользователь</th>
+                                <th>Email</th>
+                                <th>Роль в системе</th>
+                                <th class="text-end pe-4">Статус</th>
+                                <th class="text-end pe-4" style="width: 100px;">Действие</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in members %}
+                            <tr>
+                                <td class="ps-4 fw-bold">
+                                    <div class="d-flex align-items-center">
+                                        <!-- Ссылка на задачи сотрудника -->
+                                        <a href="{% url 'employee_tasks' member.id team.id %}"
+                                           class="avatar-circle me-2 d-inline-flex align-items-center justify-content-center text-white text-decoration-none shadow-sm"
+                                           style="width: 32px; height: 32px; font-size: 0.9rem; border-radius: 50%; background-color: var(--main-dark); transition: transform 0.2s; cursor: pointer;"
+                                           title="Задачи сотрудника {{ member.username }} в команде {{ team.name }}"
+                                           onmouseover="this.style.transform='scale(1.1)'"
+                                           onmouseout="this.style.transform='scale(1)'">
+                                            {{ member.username|first|upper }}
+                                        </a>
+
+                                        {{ member.get_full_name|default:member.username }}
+                                        {% if member == team.manager %}
+                                            <span class="badge bg-primary ms-2 rounded-pill" style="font-size: 0.6rem;">Вы</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="text-muted small">{{ member.email }}</td>
+                                <td><span class="badge bg-secondary">{{ member.get_role_display }}</span></td>
+                                <td class="text-end pe-4">
+                                    <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill"></i> Активен</span>
+                                </td>
+                                <!-- КНОПКА УДАЛЕНИЯ УЧАСТНИКА -->
+                                <td class="text-end pe-4">
+                                    {% if member != team.manager %}
+                                    <form method="post" style="display:inline;" onsubmit="return confirm('Вы уверены, что хотите удалить этого участника?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="remove_member_id" value="{{ member.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span class="text-muted small">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <p>В этой команде пока нет участников.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

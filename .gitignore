@@ -1,0 +1,50 @@
+# --- Python / Django ---
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Виртуальное окружение (ОБЯЗАТЕЛЬНО) ---
+venv/
+ENV/
+env/
+.venv/
+
+# --- База данных SQLite (ОБЯЗАТЕЛЬНО) ---
+db.sqlite3
+*.sqlite3
+
+# --- Медиа файлы (загруженные пользователями) ---
+/media/
+
+# --- Статические файлы (собранные) ---
+/staticfiles/
+/static_root/
+
+# --- IDE и системные файлы ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --- Секреты и настройки ---
+.env
+local_settings.py

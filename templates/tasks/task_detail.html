@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}{{ task.title }}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <a href="{% url 'task_list' %}" class="btn btn-secondary mb-3">← Назад к списку</a>
+    <div class="card">
+        <div class="card-header d-flex justify-content-between">
+            <h3>{{ task.title }}</h3>
+            <span class="badge bg-primary">{{ task.get_status_display }}</span>
+        </div>
+        <div class="card-body">
+            <p><strong>Описание:</strong><br>{{ task.description }}</p>
+            <p><strong>Исполнитель:</strong> {{ task.employee.username }}</p>
+            <p><strong>Приоритет:</strong> {{ task.get_priority_display }}</p>
+            <p><strong>Дедлайн:</strong> {{ task.deadline|default:"Не указан" }}</p>
+            <p><strong>Дата создания:</strong> {{ task.created_at }}</p>
+        </div>
+        <div class="card-footer">
+            {% if user == task.employee and task.status != 'done' %}
+                {% if task.status == 'todo' %}
+                    <a href="{% url 'task_change_status' task.pk 'inprogress' %}" class="btn btn-warning">▶️ Начать выполнение</a>
+                {% elif task.status == 'inprogress' %}
+                    <a href="{% url 'task_change_status' task.pk 'done' %}" class="btn btn-success">✅ Завершить</a>
+                {% endif %}
+            {% endif %}
+            
+            {% if user.role != 'employee' %}
+                <a href="{% url 'task_edit' task.pk %}" class="btn btn-outline-primary">Редактировать</a>
+                <a href="{% url 'task_delete' task.pk %}" class="btn btn-outline-danger" onclick="return confirm('Удалить задачу?')">Удалить</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

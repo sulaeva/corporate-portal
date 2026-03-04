@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Мой профиль{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-icon"><i class="bi bi-person-circle"></i></div>
+    <div class="page-title">
+        <h1>Мой профиль</h1>
+        <p>Личная информация и настройки аккаунта</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center p-5">
+                <!-- Аватарка -->
+                <div class="avatar-circle mx-auto mb-4" style="width: 120px; height: 120px; font-size: 3rem;">
+                    {{ user.username|first|upper }}
+                </div>
+
+                <!-- Имя и роль -->
+                <h3 class="mb-1 fw-bold">{{ user.get_full_name|default:user.username }}</h3>
+                <span class="badge bg-secondary mb-4 px-3 py-2">{{ user.get_role_display }}</span>
+
+                <hr class="my-4 w-50 mx-auto">
+
+                <!-- Детали -->
+                <div class="text-start px-md-5">
+                    <div class="mb-4">
+                        <small class="text-muted d-block text-uppercase fw-bold mb-1" style="font-size: 0.75rem;">Email</small>
+                        <div class="fs-5">{{ user.email }}</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <small class="text-muted d-block text-uppercase fw-bold mb-1" style="font-size: 0.75rem;">Дата регистрации</small>
+                        <div class="fs-5">{{ user.date_joined|date:"d E Y" }}</div>
+                    </div>
+
+                    {% if user.phone %}
+                    <div class="mb-4">
+                        <small class="text-muted d-block text-uppercase fw-bold mb-1" style="font-size: 0.75rem;">Телефон</small>
+                        <div class="fs-5">{{ user.phone }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-footer bg-white border-0 text-center pb-4">
+                 <a href="{% url 'dashboard_manager' %}" class="btn-custom btn-outline-custom px-4">
+                    <i class="bi bi-arrow-left me-2"></i> Вернуться на дашборд
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #068ca1 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .auth-container {
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .auth-container h1 { color: #068ca1; margin-bottom: 10px; }
+        .auth-container h2 { color: #333; margin-bottom: 30px; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 5px; color: #333; font-weight: 500; }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        .form-group input:focus { outline: none; border-color: #068ca1; }
+        .btn-primary {
+            background: #068ca1;
+            color: #ffffff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn-primary:hover { background: #056b7d; }
+        .auth-link { margin-top: 20px; color: #333; }
+        .auth-link a { color: #068ca1; text-decoration: none; }
+        .error { color: #dc3545; margin-top: 10px; font-size: 0.9rem; }
+        .success { color: #28a745; margin-top: 10px; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h1>🏢 Корпоративный портал</h1>
+        <h2>Регистрация</h2>
+        <form id="register-form">
+            <div class="form-group">
+                <label>Имя пользователя</label>
+                <input type="text" id="reg-username" required placeholder="Придумайте username">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="reg-email" required placeholder="example@company.com">
+            </div>
+            <div class="form-group">
+                <label>Пароль</label>
+                <input type="password" id="reg-password" required placeholder="Минимум 8 символов">
+            </div>
+            <div class="form-group">
+                <label>Подтвердите пароль</label>
+                <input type="password" id="reg-password-confirm" required placeholder="Повторите пароль">
+            </div>
+            <button type="submit" class="btn-primary">Зарегистрироваться</button>
+            <div id="message" class=""></div>
+            <p class="auth-link">Уже есть аккаунт? <a href="/login/">Войти</a></p>
+        </form>
+    </div>
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/api';
+
+        // Получение CSRF токена
+        function getCSRFToken() {
+            const name = 'csrftoken';
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('reg-username').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            const password_confirm = document.getElementById('reg-password-confirm').value;
+            const messageDiv = document.getElementById('message');
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+
+            messageDiv.textContent = '';
+            messageDiv.className = '';
+
+            if (password !== password_confirm) {
+                messageDiv.textContent = 'Пароли не совпадают!';
+                messageDiv.className = 'error';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Регистрация...';
+
+            try {
+                const response = await fetch(`${API_URL}/register/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken() || ''
+                    },
+                    body: JSON.stringify({ username, email, password, password_confirm })
+                });
+
+                console.log('Response status:', response.status);
+
+                if (response.ok) {
+                    messageDiv.textContent = '✅ Регистрация успешна! Перенаправление...';
+                    messageDiv.className = 'success';
+                    setTimeout(() => {
+                        window.location.href = '/login/';
+                    }, 1500);
+                } else {
+                    const error = await response.json();
+                    console.error('Register error:', error);
+                    let errorMsg = 'Ошибка регистрации';
+                    if (error.username) errorMsg += ': ' + error.username[0];
+                    else if (error.email) errorMsg += ': ' + error.email[0];
+                    else if (error.password) errorMsg += ': ' + error.password[0];
+                    else if (error.non_field_errors) errorMsg += ': ' + error.non_field_errors[0];
+
+                    messageDiv.textContent = errorMsg;
+                    messageDiv.className = 'error';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Зарегистрироваться';
+                }
+            } catch (error) {
+                console.error('Connection error:', error);
+                messageDiv.textContent = 'Ошибка подключения к серверу';
+                messageDiv.className = 'error';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Зарегистрироваться';
+            }
+        });
+    </script>
+</body>
+</html>

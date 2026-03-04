@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard Менеджера{% endblock %}
+
+{% block content %}
+<!-- Заголовок страницы -->
+<div class="page-header">
+    <div class="page-icon"><i class="bi bi-briefcase-fill"></i></div>
+    <div class="page-title">
+        <h1>Привет, {{ request.user.username }}!</h1>
+        <p>Панель управления менеджера. Контролируйте свои команды и задачи.</p>
+    </div>
+</div>
+
+<!-- Кнопки быстрого действия -->
+<div class="action-buttons mb-4">
+    <a href="{% url 'task_create' %}" class="btn-custom btn-black">
+        <i class="bi bi-plus-lg"></i> Создать задачу
+    </a>
+    <a href="{% url 'team_create' %}" class="btn-custom btn-navy">
+        <i class="bi bi-people-fill"></i> Создать команду
+    </a>
+</div>
+
+<!-- Блок статистики (используем данные из views.py) -->
+<div class="row g-4 mb-5">
+    <!-- Карточка: Мои задачи -->
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+                <div class="display-4 text-primary mb-2">
+                    <i class="bi bi-list-task"></i>
+                </div>
+                <h3 class="fw-bold">{{ stats.total_tasks }}</h3>
+                <p class="text-muted mb-3">Задачи под моим контролем</p>
+                <!-- ГЛАВНОЕ ИЗМЕНЕНИЕ: Ссылка с фильтром manager -->
+                <a href="{% url 'task_list' %}?manager={{ request.user.id }}" class="btn btn-outline-primary btn-sm w-100">
+                    Посмотреть мои задачи
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Карточка: Выполненные -->
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+                <div class="display-4 text-success mb-2">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+                <h3 class="fw-bold">{{ stats.tasks_done }}</h3>
+                <p class="text-muted mb-3">Выполнено </p>
+                <a href="{% url 'task_done_list' %}" class="btn btn-outline-success btn-sm w-100">
+                    Архив выполненных
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Карточка: Мои команды -->
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body text-center p-4">
+                <div class="display-4 text-navy mb-2" style="color: var(--main-dark);">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <h3 class="fw-bold">{{ stats.my_teams_count }}</h3>
+                <p class="text-muted mb-3">Команды </p>
+                <a href="{% url 'my_teams_list' %}" class="btn btn-outline-dark btn-sm w-100" style="border-color: var(--main-dark); color: var(--main-dark);">
+                    Управление командами
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Подсказка -->
+<div class="alert alert-info border-0 shadow-sm d-flex align-items-start" role="alert">
+    <i class="bi bi-info-circle-fill me-3 fs-4 mt-1"></i>
+    <div>
+        <h5 class="alert-heading fw-bold">Как это работает?</h5>
+        <p class="mb-0 small">
+            Вы видите только те задачи, которые создали сами. Чтобы посмотреть задачи конкретного сотрудника, перейдите в раздел
+            <strong>«Команды»</strong>, выберите команду и нажмите на аватарку сотрудника.
+            Для настройки профиля перейдите в раздел <strong>«Личное» → «Мой аккаунт»</strong>.
+        </p>
+    </div>
+</div>
+{% endblock %}

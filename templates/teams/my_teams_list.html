@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}Мои команды{% endblock %}
+
+{% block content %}
+<!-- Заголовок страницы -->
+<div class="page-header">
+    <div class="page-icon"><i class="bi bi-people-fill"></i></div>
+    <div class="page-title">
+        <h1>Мои команды</h1>
+        <p>Список команд, которыми вы руководите</p>
+    </div>
+</div>
+
+<!-- Кнопка действия -->
+<div class="action-buttons mb-4">
+    <a href="{% url 'team_create' %}" class="btn-custom btn-black">
+        <i class="bi bi-plus-lg"></i> Создать команду
+    </a>
+</div>
+
+<!-- Таблица команд (Стиль как у "Все задачи") -->
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        {% if teams %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col" class="ps-4" style="width: 50px;">ID</th>
+                        <th scope="col">НАЗВАНИЕ</th>
+                        <th scope="col">ОПИСАНИЕ</th>
+                        <th scope="col">УЧАСТНИКОВ</th>
+                        <th scope="col">СТАТУС</th>
+                        <th scope="col" class="text-end pe-4">ДЕЙСТВИЕ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in teams %}
+                    <tr>
+                        <!-- ID -->
+                        <td class="ps-4 text-muted small">#{{ team.id }}</td>
+                        
+                        <!-- Название -->
+                        <td class="fw-bold">{{ team.name }}</td>
+                        
+                        <!-- Описание (обрезанное) -->
+                        <td class="text-muted small">
+                            {{ team.description|truncatechars:50|default:"—" }}
+                        </td>
+                        
+                        <!-- Количество участников -->
+                        <td>
+                            <span class="badge bg-secondary rounded-pill">
+                                {{ team.members.count }} чел.
+                            </span>
+                        </td>
+                        
+                        <!-- Статус (Роль) -->
+                        <td>
+                            <span class="badge bg-primary rounded-pill">Лидер</span>
+                        </td>
+                        
+                        <!-- Кнопка управления -->
+                        <td class="text-end pe-4">
+                            <a href="{% url 'team_detail' team.pk %}" class="btn btn-sm btn-outline-custom">
+                                Управление
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <!-- Пустое состояние -->
+        <div class="text-center py-5">
+            <i class="bi bi-inbox display-4 text-muted mb-3"></i>
+            <h5 class="text-muted">У вас пока нет созданных команд</h5>
+            <a href="{% url 'team_create' %}" class="btn-custom btn-black mt-3">
+                Создать первую команду
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

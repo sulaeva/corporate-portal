@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard Директора{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-icon"><i class="bi bi-building"></i></div>
+    <div class="page-title">
+        <h1>Dashboard Директора</h1>
+        <p>Управление системой и задачами</p>
+    </div>
+</div>
+
+<!-- Кнопки действий -->
+<div class="action-buttons">
+    <a href="{% url 'task_create' %}" class="btn-custom btn-black">
+        <i class="bi bi-plus-lg"></i> Создать задачу
+    </a>
+    <a href="{% url 'team_create' %}" class="btn-custom btn-navy">
+        <i class="bi bi-people-fill"></i> Создать команду
+    </a>
+    <a href="/admin/" class="btn-custom btn-outline-custom">
+        <i class="bi bi-gear-fill"></i> Админ-панель
+    </a>
+</div>
+
+<!-- Таблица последних задач -->
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-clipboard-data"></i> Последние задачи
+    </div>
+    <div class="card-body">
+        {% if tasks %}
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Исполнитель</th>
+                    <th>Статус</th>
+                    <th>Дедлайн</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td style="font-weight: 600;">{{ task.title }}</td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle me-2" style="width:28px; height:28px; font-size:0.8rem;">{{ task.employee.username|first|upper }}</div>
+                            {{ task.employee.username }}
+                        </div>
+                    </td>
+                    <td>
+                        {% if task.status == 'done' %}<span class="badge text-success">Выполнено</span>
+                        {% elif task.status == 'inprogress' %}<span class="badge text-warning">В работе</span>
+                        {% else %}<span class="badge text-secondary">Новая</span>{% endif %}
+                    </td>
+                    <td class="text-muted">{{ task.due_date|date:"d.m.Y"|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-inbox display-4 d-block mb-3"></i>
+            Нет активных задач
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

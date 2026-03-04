@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}{% if selected_manager %}Мои задачи{% else %}Все задачи{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-icon"><i class="bi bi-list-task"></i></div>
+    <div class="page-title">
+        <!-- Динамический заголовок -->
+        {% if selected_manager %}
+            <h1>Задачи под моим контролем</h1>
+            <p>Список задач, созданных вами ({{ selected_manager.username }})</p>
+        {% elif selected_employee %}
+            <h1>Задачи сотрудника</h1>
+            <p>Задачи назначенные: {{ selected_employee.username }}</p>
+        {% else %}
+            <h1>Все задачи</h1>
+            <p>Полный реестр активных задач системы</p>
+        {% endif %}
+    </div>
+
+    <!-- Кнопка создания (всегда видна для менеджеров/директоров) -->
+    <div class="ms-auto">
+        <a href="{% url 'task_create' %}" class="btn-custom btn-black">
+            <i class="bi bi-plus-lg"></i> Создать задачу
+        </a>
+    </div>
+</div>
+
+<!-- Инфо-блок если выбран фильтр -->
+{% if selected_manager %}
+<div class="alert alert-info d-flex align-items-center mb-4 shadow-sm border-0" style="background-color: #e7f1ff;">
+    <i class="bi bi-info-circle-fill me-2 fs-4 text-primary"></i>
+    <div>
+        <strong>Режим просмотра:</strong> Отображаются только задачи, автором которых являетесь вы.
+        <a href="{% url 'task_list' %}" class="ms-2 btn btn-sm btn-outline-primary">Показать все задачи</a>
+    </div>
+</div>
+{% endif %}
+
+{% if selected_employee %}
+<div class="alert alert-info d-flex justify-content-between align-items-center mb-4 shadow-sm border-0" style="background-color: #e7f1ff;">
+    <div>
+        <strong>Сотрудник:</strong> {{ selected_employee.username }}
+    </div>
+    <a href="{% url 'task_create' %}?employee={{ selected_employee.id }}" class="btn btn-sm btn-navy">
+        <i class="bi bi-plus-lg"></i> Поставить задачу
+    </a>
+</div>
+{% endif %}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        {% if tasks %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4" style="width: 60px;">ID</th>
+                        <th style="width: 25%;">Название</th>
+                        <th>Описание</th>
+                        <th>Исполнитель</th>
+                        <th>Статус</th>
+                        <th>Приоритет</th>
+                        <th>Дедлайн</th>
+                        <th class="text-end pe-4">Действие</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    <tr>
+                        <td class="ps-4 text-muted small">#{{ task.id }}</td>
+                        <td class="fw-bold text-dark">{{ task.title }}</td>
+                        <td class="text-muted small" style="max-width: 200px;">
+                            {{ task.description|truncatechars:60 }}
+                        </td>
+                        <td>
+                            {% if task.employee %}
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle me-2 d-inline-flex align-items-center justify-content-center text-white"
+                                     style="width: 28px; height: 28px; font-size: 0.75rem; border-radius: 50%; background-color: var(--main-dark);">
+                                    {{ task.employee.username|first|upper }}
+                                </div>
+                                <span>{{ task.employee.username }}</span>
+                            </div>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if task.status == 'done' %}
+                                <span class="badge bg-success rounded-pill">Выполнено</span>
+                            {% elif task.status == 'inprogress' %}
+                                <span class="badge bg-warning text-dark rounded-pill">В работе</span>
+                            {% else %}
+                                <span class="badge bg-secondary rounded-pill">Новая</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="text-capitalize small fw-bold
+                                {% if task.priority == 'high' %}text-danger
+                                {% elif task.priority == 'medium' %}text-warning
+                                {% else %}text-muted{% endif %}">
+                                {{ task.get_priority_display }}
+                            </span>
+                        </td>
+                        <td class="text-muted small">
+                            {{ task.due_date|date:"d.m.Y"|default:"—" }}
+                        </td>
+                        <td class="text-end pe-4">
+                            <a href="{% url 'task_detail' task.pk %}" class="btn btn-sm btn-outline-custom">
+                                Подробнее
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox display-1 text-muted opacity-25 mb-3"></i>
+            <h5 class="text-muted">Задач не найдено</h5>
+            <p class="text-muted small">
+                {% if selected_manager %}
+                    У вас пока нет активных задач. Создайте первую!
+                {% elif selected_employee %}
+                    У этого сотрудника пока нет задач.
+                {% else %}
+                    В системе пока нет активных задач.
+                {% endif %}
+            </p>
+            {% if selected_manager or not selected_employee %}
+            <a href="{% url 'task_create' %}" class="btn-custom btn-navy mt-2">
+                <i class="bi bi-plus-lg"></i> Создать задачу
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

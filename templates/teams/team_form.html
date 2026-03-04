@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Создать команду{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-icon"><i class="bi bi-people-fill"></i></div>
+    <div class="page-title">
+        <h1>Создание новой команды</h1>
+        <p>Заполните информацию о команде и выберите участников</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body" style="padding: 30px;">
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="mb-4">
+                <label class="form-label fw-bold">{{ form.name.label }}</label>
+                {{ form.name }}
+                {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold">{{ form.description.label }}</label>
+                {{ form.description }}
+                {% if form.description.errors %}<div class="text-danger small">{{ form.description.errors.0 }}</div>{% endif %}
+            </div>
+
+            <!-- Новое поле для участников -->
+            <div class="mb-4">
+                <label class="form-label fw-bold">{{ form.members.label }}</label>
+                <div style="max-height: 200px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 4px;">
+                    {{ form.members }}
+                </div>
+                {% if form.members.errors %}<div class="text-danger small">{{ form.members.errors.0 }}</div>{% endif %}
+                <div class="form-text">Выберите сотрудников, которых хотите добавить в команду.</div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn-custom btn-black">Создать команду</button>
+                <a href="{% url 'dashboard_manager' %}" class="btn-custom btn-outline-custom">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

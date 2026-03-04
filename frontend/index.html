@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Корпоративный портал</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #068ca1 100%); min-height: 100vh; }
+        :root { --primary: #068ca1; --primary-dark: #056b7d; --white: #ffffff; --dark: #333333; }
+        .navbar { background: var(--primary); color: var(--white); padding: 1rem 0; }
+        .navbar .container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .logo { font-size: 1.5rem; font-weight: bold; color: var(--white); }
+        .nav-links { display: flex; gap: 15px; }
+        .nav-btn { background: rgba(255,255,255,0.2); border: none; color: var(--white); padding: 8px 16px; border-radius: 5px; cursor: pointer; }
+        .nav-btn.logout { background: #dc3545; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .main-content { background: var(--white); margin-top: 20px; border-radius: 10px; padding: 30px; min-height: calc(100vh - 150px); }
+        .section { margin-bottom: 30px; }
+        .section h2 { color: var(--primary); margin-bottom: 20px; }
+        .btn-primary { background: var(--primary); color: var(--white); border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; margin-bottom: 20px; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .card { background: var(--white); border: 2px solid var(--primary); border-radius: 10px; padding: 20px; }
+        .card h3 { color: var(--primary); margin-bottom: 10px; }
+        .card p { color: var(--dark); margin: 5px 0; }
+        .card-actions { margin-top: 15px; display: flex; gap: 10px; }
+        .btn-edit { background: var(--primary); color: var(--white); border: none; padding: 5px 15px; border-radius: 3px; cursor: pointer; }
+        .btn-delete { background: #dc3545; color: var(--white); border: none; padding: 5px 15px; border-radius: 3px; cursor: pointer; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: var(--white); margin: 5% auto; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px; position: relative; }
+        .close { position: absolute; right: 20px; top: 20px; font-size: 28px; cursor: pointer; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1 class="logo">🏢 Корпоративный портал</h1>
+            <div class="nav-links">
+                <button onclick="showSection('departments')" class="nav-btn">Отделы</button>
+                <button onclick="showSection('employees')" class="nav-btn">Сотрудники</button>
+                <button onclick="logout()" class="nav-btn logout">Выйти</button>
+            </div>
+        </div>
+    </nav>
+    <div class="container main-content">
+        <section id="departments" class="section">
+            <h2>📋 Отделы компании</h2>
+            <button onclick="openModal('department')" class="btn-primary">+ Добавить отдел</button>
+            <div id="departments-list" class="cards-grid"></div>
+        </section>
+        <section id="employees" class="section" style="display:none;">
+            <h2>👥 Сотрудники</h2>
+            <button onclick="openModal('employee')" class="btn-primary">+ Добавить сотрудника</button>
+            <div id="employees-list" class="cards-grid"></div>
+        </section>
+    </div>
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modal-title">Добавить</h2>
+            <form id="modal-form"></form>
+        </div>
+    </div>
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/api';
+
+        // Получение CSRF токена
+        function getCSRFToken() {
+            const name = 'csrftoken';
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Получение токена
+        function getToken() {
+            return localStorage.getItem('access_token');
+        }
+
+        // Проверка авторизации
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = getToken();
+            if (!token) {
+                window.location.href = '/login/';
+            } else {
+                loadDepartments();
+                loadEmployees();
+            }
+        });
+
+        function logout() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            window.location.href = '/login/';
+        }
+
+        function showSection(name) {
+            document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+            document.getElementById(name).style.display = 'block';
+        }
+
+        async function loadDepartments() {
+            const token = getToken();
+            try {
+                const response = await fetch(`${API_URL}/departments/`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                const container = document.getElementById('departments-list');
+                container.innerHTML = data.results && data.results.length > 0 ? data.results.map(d => `
+                    <div class="card">
+                        <h3>${d.name}</h3>
+                        <p><strong>Код:</strong> ${d.code}</p>
+                        <p><strong>Кабинет:</strong> ${d.office_number}</p>
+                        <p><strong>Сотрудников:</strong> ${d.employees_count}</p>
+                        <div class="card-actions">
+                            <button class="btn-delete" onclick="deleteDepartment(${d.id})">Удалить</button>
+                        </div>
+                    </div>
+                `).join('') : '<p>Нет отделов</p>';
+            } catch (error) {
+                console.error('Ошибка:', error);
+                document.getElementById('departments-list').innerHTML = '<p>Ошибка загрузки</p>';
+            }
+        }
+
+        async function loadEmployees() {
+            const token = getToken();
+            try {
+                const response = await fetch(`${API_URL}/employees/`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                const container = document.getElementById('employees-list');
+                container.innerHTML = data.results && data.results.length > 0 ? data.results.map(e => `
+                    <div class="card">
+                        <h3>${e.full_name}</h3>
+                        <p><strong>Email:</strong> ${e.email}</p>
+                        <p><strong>Телефон:</strong> ${e.phone}</p>
+                        <p><strong>Должность:</strong> ${e.position_display}</p>
+                        <p><strong>Отдел:</strong> ${e.department_name}</p>
+                        <div class="card-actions">
+                            <button class="btn-delete" onclick="deleteEmployee(${e.id})">Удалить</button>
+                        </div>
+                    </div>
+                `).join('') : '<p>Нет сотрудников</p>';
+            } catch (error) {
+                console.error('Ошибка:', error);
+                document.getElementById('employees-list').innerHTML = '<p>Ошибка загрузки</p>';
+            }
+        }
+
+        function openModal(type) {
+            const modal = document.getElementById('modal');
+            const form = document.getElementById('modal-form');
+            modal.style.display = 'block';
+
+            if (type === 'department') {
+                document.getElementById('modal-title').textContent = 'Добавить отдел';
+                form.innerHTML = `
+                    <div class="form-group"><label>Название</label><input type="text" id="dept-name" required></div>
+                    <div class="form-group"><label>Код</label><input type="text" id="dept-code" required></div>
+                    <div class="form-group"><label>Кабинет</label><input type="text" id="dept-office" required></div>
+                    <button type="button" class="btn-primary" onclick="createDepartment()">Создать</button>
+                `;
+            } else if (type === 'employee') {
+                document.getElementById('modal-title').textContent = 'Добавить сотрудника';
+                form.innerHTML = `
+                    <div class="form-group"><label>ФИО</label><input type="text" id="emp-name" required></div>
+                    <div class="form-group"><label>Email</label><input type="email" id="emp-email" required></div>
+                    <div class="form-group"><label>Телефон</label><input type="text" id="emp-phone" required></div>
+                    <div class="form-group"><label>Должность</label>
+                        <select id="emp-position">
+                            <option value="junior">Junior</option>
+                            <option value="middle">Middle</option>
+                            <option value="senior">Senior</option>
+                            <option value="lead">Team Lead</option>
+                            <option value="manager">Manager</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Отдел (ID)</label><input type="number" id="emp-department" required></div>
+                    <div class="form-group"><label>Дата приема</label><input type="date" id="emp-hire-date" required></div>
+                    <button type="button" class="btn-primary" onclick="createEmployee()">Создать</button>
+                `;
+            }
+        }
+
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+        async function createDepartment() {
+            const token = getToken();
+            const csrfToken = getCSRFToken();
+            const data = {
+                name: document.getElementById('dept-name').value,
+                code: document.getElementById('dept-code').value,
+                office_number: document.getElementById('dept-office').value
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/departments/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'X-CSRFToken': csrfToken || ''
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    closeModal();
+                    loadDepartments();
+                } else {
+                    const error = await response.json();
+                    alert('Ошибка: ' + JSON.stringify(error));
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка подключения');
+            }
+        }
+
+        async function createEmployee() {
+            const token = getToken();
+            const csrfToken = getCSRFToken();
+            const data = {
+                full_name: document.getElementById('emp-name').value,
+                email: document.getElementById('emp-email').value,
+                phone: document.getElementById('emp-phone').value,
+                position: document.getElementById('emp-position').value,
+                department: parseInt(document.getElementById('emp-department').value),
+                hire_date: document.getElementById('emp-hire-date').value
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/employees/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'X-CSRFToken': csrfToken || ''
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    closeModal();
+                    loadEmployees();
+                } else {
+                    const error = await response.json();
+                    alert('Ошибка: ' + JSON.stringify(error));
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка подключения');
+            }
+        }
+
+        async function deleteDepartment(id) {
+            if (!confirm('Удалить отдел?')) return;
+            const token = getToken();
+            const csrfToken = getCSRFToken();
+
+            try {
+                const response = await fetch(`${API_URL}/departments/${id}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'X-CSRFToken': csrfToken || ''
+                    }
+                });
+
+                if (response.ok) {
+                    loadDepartments();
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+
+        async function deleteEmployee(id) {
+            if (!confirm('Удалить сотрудника?')) return;
+            const token = getToken();
+            const csrfToken = getCSRFToken();
+
+            try {
+                const response = await fetch(`${API_URL}/employees/${id}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'X-CSRFToken': csrfToken || ''
+                    }
+                });
+
+                if (response.ok) {
+                    loadEmployees();
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+
+        window.onclick = (e) => { if (e.target == document.getElementById('modal')) closeModal(); }
+    </script>
+</body>
+</html>

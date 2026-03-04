@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход в систему</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #068ca1 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .auth-container {
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .auth-container h1 { color: #068ca1; margin-bottom: 10px; }
+        .auth-container h2 { color: #333; margin-bottom: 30px; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 5px; color: #333; font-weight: 500; }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        .form-group input:focus { outline: none; border-color: #068ca1; }
+        .btn-primary {
+            background: #068ca1;
+            color: #ffffff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn-primary:hover { background: #056b7d; }
+        .auth-link { margin-top: 20px; color: #333; }
+        .auth-link a { color: #068ca1; text-decoration: none; }
+        .error { color: #dc3545; margin-top: 10px; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h1>🏢 Корпоративный портал</h1>
+        <h2>Вход в систему</h2>
+        <form id="login-form">
+            <div class="form-group">
+                <label>Имя пользователя</label>
+                <input type="text" id="username" required placeholder="Введите username">
+            </div>
+            <div class="form-group">
+                <label>Пароль</label>
+                <input type="password" id="password" required placeholder="Введите пароль">
+            </div>
+            <button type="submit" class="btn-primary">Войти</button>
+            <div id="error-message" class="error"></div>
+            <p class="auth-link">Нет аккаунта? <a href="/register/">Зарегистрироваться</a></p>
+        </form>
+    </div>
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/api';
+
+        // Получение CSRF токена
+        function getCSRFToken() {
+            const name = 'csrftoken';
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error-message');
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+
+            errorDiv.textContent = '';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Вход...';
+
+            try {
+                const response = await fetch(`${API_URL}/token/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken() || ''
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                console.log('Response status:', response.status);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Token received:', data.access ? '✅' : '❌');
+                    localStorage.setItem('access_token', data.access);
+                    localStorage.setItem('refresh_token', data.refresh);
+
+                    // Проверка что токен сохранен
+                    if (localStorage.getItem('access_token')) {
+                        console.log('Redirecting to dashboard...');
+                        window.location.href = '/dashboard/';
+                    } else {
+                        errorDiv.textContent = 'Ошибка сохранения токена';
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Войти';
+                    }
+                } else {
+                    const error = await response.json();
+                    console.error('Login error:', error);
+                    errorDiv.textContent = 'Ошибка: ' + (error.detail || 'Неверный логин или пароль');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Войти';
+                }
+            } catch (error) {
+                console.error('Connection error:', error);
+                errorDiv.textContent = 'Ошибка подключения к серверу';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Войти';
+            }
+        });
+    </script>
+</body>
+</html>

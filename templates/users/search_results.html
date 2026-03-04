@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}Поиск: {{ query }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-icon"><i class="bi bi-search"></i></div>
+    <div class="page-title">
+        <h1>Результаты поиска: "{{ query }}"</h1>
+        <p>Найдено пользователей: {{ users.count }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        {% if users %}
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Логин</th>
+                    <th>Имя</th>
+                    <th>Email</th>
+                    <th>Роль</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td class="fw-bold">{{ user.username }}</td>
+                    <td>{{ user.first_name }} {{ user.last_name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td><span class="badge bg-secondary">{{ user.get_role_display }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-inbox display-4 d-block mb-3"></i>
+            Ничего не найдено по запросу "{{ query }}"
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<a href="{% url 'dashboard' %}" class="btn-custom btn-outline-custom mt-3">← Вернуться назад</a>
+{% endblock %}

@@ -1,34 +1,122 @@
 {% extends 'base.html' %}
 {% block title %}{{ task.title }}{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <a href="{% url 'task_list' %}" class="btn btn-secondary mb-3">← Назад к списку</a>
-    <div class="card">
-        <div class="card-header d-flex justify-content-between">
-            <h3>{{ task.title }}</h3>
-            <span class="badge bg-primary">{{ task.get_status_display }}</span>
+<div class="dashboard-container">
+
+    <!-- Кнопка назад -->
+    <a href="{% url 'task_list' %}" class="btn btn-outline-secondary btn-sm mb-4">
+        <i class="bi bi-arrow-left me-1"></i> Назад к списку
+    </a>
+
+    <!-- Заголовок задачи -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h4 class="mb-0 fw-bold text-dark">{{ task.title }}</h4>
+            {% if task.status == 'done' %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
+                    <i class="bi bi-check-lg me-1"></i>Выполнено
+                </span>
+            {% elif task.status == 'inprogress' %}
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 rounded-pill">
+                    <i class="bi bi-hourglass-split me-1"></i>В работе
+                </span>
+            {% else %}
+                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 rounded-pill">
+                    <i class="bi bi-circle me-1"></i>Новая
+                </span>
+            {% endif %}
         </div>
-        <div class="card-body">
-            <p><strong>Описание:</strong><br>{{ task.description }}</p>
-            <p><strong>Исполнитель:</strong> {{ task.employee.username }}</p>
-            <p><strong>Приоритет:</strong> {{ task.get_priority_display }}</p>
-            <p><strong>Дедлайн:</strong> {{ task.deadline|default:"Не указан" }}</p>
-            <p><strong>Дата создания:</strong> {{ task.created_at }}</p>
+
+        <div class="card-body p-4">
+            <!-- Описание -->
+            <div class="mb-4">
+                <small class="text-muted text-uppercase fw-bold fs-7">Описание</small>
+                <p class="mt-1 text-dark">{{ task.description|default:"Не указано" }}</p>
+            </div>
+
+            <!-- Детали в сетке -->
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <small class="text-muted d-block text-uppercase fs-7 fw-bold">Исполнитель</small>
+                    <div class="d-flex align-items-center mt-1">
+                        <div class="bg-light border rounded-circle d-flex justify-content-center align-items-center me-2"
+                             style="width: 32px; height: 32px; font-size: 0.85rem; font-weight: 600;">
+                            {{ task.employee.username|first|upper }}
+                        </div>
+                        <span class="text-dark fw-medium">
+                            {% if task.employee.first_name %}
+                                {{ task.employee.first_name }} {{ task.employee.last_name }}
+                            {% else %}
+                                {{ task.employee.username }}
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <small class="text-muted d-block text-uppercase fs-7 fw-bold">Приоритет</small>
+                    <span class="mt-1 d-block text-dark fw-medium">
+                        {% if task.priority == 'high' %}
+                            <i class="bi bi-arrow-up-circle-fill text-danger me-1"></i>
+                        {% elif task.priority == 'medium' %}
+                            <i class="bi bi-dash-circle-fill text-warning me-1"></i>
+                        {% else %}
+                            <i class="bi bi-arrow-down-circle-fill text-success me-1"></i>
+                        {% endif %}
+                        {{ task.get_priority_display }}
+                    </span>
+                </div>
+
+                <div class="col-md-3">
+                    <small class="text-muted d-block text-uppercase fs-7 fw-bold">Дедлайн</small>
+                    <span class="mt-1 d-block text-dark fw-medium">
+                        {% if task.due_date %}
+                            <i class="bi bi-calendar3 me-1"></i>{{ task.due_date|date:"d.m.Y" }}
+                        {% else %}
+                            <span class="text-muted">Не указан</span>
+                        {% endif %}
+                    </span>
+                </div>
+
+                <div class="col-md-3">
+                    <small class="text-muted d-block text-uppercase fs-7 fw-bold">Дата создания</small>
+                    <span class="mt-1 d-block text-dark fw-medium">
+                        <i class="bi bi-clock me-1"></i>{{ task.created_at|date:"d.m.Y" }}
+                    </span>
+                </div>
+            </div>
         </div>
-        <div class="card-footer">
+
+        <!-- Кнопки действий -->
+        <div class="card-footer bg-white py-3 border-top d-flex gap-2">
             {% if user == task.employee and task.status != 'done' %}
                 {% if task.status == 'todo' %}
-                    <a href="{% url 'task_change_status' task.pk 'inprogress' %}" class="btn btn-warning">▶️ Начать выполнение</a>
+                    <a href="{% url 'task_change_status' task.pk 'inprogress' %}" class="btn btn-warning btn-sm">
+                        <i class="bi bi-play-fill me-1"></i>Начать выполнение
+                    </a>
                 {% elif task.status == 'inprogress' %}
-                    <a href="{% url 'task_change_status' task.pk 'done' %}" class="btn btn-success">✅ Завершить</a>
+                    <a href="{% url 'task_change_status' task.pk 'done' %}" class="btn btn-success btn-sm">
+                        <i class="bi bi-check-lg me-1"></i>Завершить
+                    </a>
                 {% endif %}
             {% endif %}
-            
+
             {% if user.role != 'employee' %}
-                <a href="{% url 'task_edit' task.pk %}" class="btn btn-outline-primary">Редактировать</a>
-                <a href="{% url 'task_delete' task.pk %}" class="btn btn-outline-danger" onclick="return confirm('Удалить задачу?')">Удалить</a>
+                <a href="{% url 'task_edit' task.pk %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-pencil me-1"></i>Редактировать
+                </a>
+                <a href="{% url 'task_delete' task.pk %}" class="btn btn-outline-danger btn-sm"
+                   onclick="return confirm('Удалить задачу?')">
+                    <i class="bi bi-trash me-1"></i>Удалить
+                </a>
             {% endif %}
         </div>
     </div>
 </div>
+
+<style>
+    .fs-7 { font-size: 0.75rem; }
+    .dashboard-container { max-width: 1400px; margin: 0 auto; }
+</style>
 {% endblock %}

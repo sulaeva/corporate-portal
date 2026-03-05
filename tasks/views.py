@@ -12,51 +12,50 @@ User = get_user_model()
 
 @login_required
 def task_list(request):
-    """
-    Показывает задачи.
-    Фильтры:
-    1. ?employee=ID -> задачи конкретного сотрудника
-    2. ?manager=ID -> задачи конкретного менеджера (автора)
-    3. Без параметров -> все незавершенные задачи (для директора)
-    """
-    # Базовый запрос: все незавершенные задачи
+    # ✅ Сотрудник видит только свои задачи
+    if request.user.role == 'employee':
+        tasks = Task.objects.filter(employee=request.user).exclude(status='done').order_by('-created_at')
+        context = {
+            'tasks': tasks,
+            'is_employee_view': True,  # ← добавлено
+            'stats': {
+                'total_tasks': tasks.count(),
+                'tasks_done': Task.objects.filter(employee=request.user, status='done').count(),
+                'total_users': User.objects.count(),
+                'total_employees': User.objects.filter(role='employee').count(),
+            }
+        }
+        return render(request, 'tasks/task_list.html', context)
+
+    # Для директора и менеджера — старая логика
     tasks = Task.objects.exclude(status='done').order_by('-created_at')
 
     selected_employee = None
     selected_manager = None
-
-    # Переменные для статистики (чтобы показать цифры в меню)
     active_tasks_count = 0
     done_tasks_count = 0
 
-    # 1. Фильтр по сотруднику (если есть в URL)
     employee_id = request.GET.get('employee')
     if employee_id:
         try:
             tasks = tasks.filter(employee_id=employee_id)
             selected_employee = User.objects.get(id=employee_id)
-            # Считаем задачи этого сотрудника для меню
             active_tasks_count = tasks.count()
         except (ValueError, User.DoesNotExist):
             pass
 
-    # 2. Фильтр по менеджеру/автору (ЕСЛИ ЕСТЬ В URL)
     manager_id = request.GET.get('manager')
     if manager_id:
         try:
             tasks = tasks.filter(manager_id=manager_id)
             selected_manager = User.objects.get(id=manager_id)
-            # Считаем задачи этого менеджера для меню
             active_tasks_count = tasks.count()
         except (ValueError, User.DoesNotExist):
             pass
 
-    # Если фильтров нет (режим Директора), считаем все задачи
     if not employee_id and not manager_id:
         active_tasks_count = tasks.count()
 
-    # Считаем выполненные задачи (для пункта "Выполнено" в меню)
-    # Логика: если отфильтровано по менеджеру - показываем его выполненные, иначе - все
     if manager_id:
         done_tasks_count = Task.objects.filter(manager_id=manager_id, status='done').count()
     elif employee_id:
@@ -68,16 +67,15 @@ def task_list(request):
         'tasks': tasks,
         'selected_employee': selected_employee,
         'selected_manager': selected_manager,
-        # !!! ЭТОТ БЛОК ОБЯЗАТЕЛЕН !!!
+        'is_employee_view': False,
         'stats': {
-            'total_tasks': active_tasks_count,  # Переменная, которую ты считала выше
-            'tasks_done': done_tasks_count,  # Переменная, которую ты считала выше
+            'total_tasks': active_tasks_count,
+            'tasks_done': done_tasks_count,
             'total_users': User.objects.count(),
             'total_employees': User.objects.filter(role='employee').count(),
         }
     }
     return render(request, 'tasks/task_list.html', context)
-
 
 @role_required(['director', 'manager'])
 def task_create(request, employee_id=None, team_id=None):
@@ -181,10 +179,8 @@ def task_detail(request, pk):
 
 @login_required
 def task_change_status(request, pk, new_status):
-    """Изменение статуса задачи"""
     task = get_object_or_404(Task, pk=pk)
 
-    # Проверка прав (исполнитель или директор)
     if request.user != task.employee and getattr(request.user, 'role', '') != 'director':
         messages.error(request, 'Только исполнитель или директор может менять статус')
         return redirect('task_detail', pk=pk)
@@ -199,7 +195,7 @@ def task_change_status(request, pk, new_status):
     new_index = status_order.index(new_status)
 
     if request.user != task.employee and getattr(request.user, 'role', '') == 'director':
-        pass  # Директору разрешено всё
+        pass
     elif new_index <= current_index:
         messages.error(request, 'Нельзя вернуть задачу в предыдущий статус')
         return redirect('task_detail', pk=pk)
@@ -210,7 +206,14 @@ def task_change_status(request, pk, new_status):
     status_names = {'todo': 'Новая', 'inprogress': 'В работе', 'done': 'Выполнено'}
     messages.success(request, f'Статус изменён на {status_names[new_status]}')
 
-    return redirect('task_detail', pk=pk)
+    # ✅ Редирект по роли
+    if request.user.role == 'employee':
+        return redirect('dashboard_employee')
+    elif request.user.role == 'manager':
+        return redirect('dashboard_manager')
+    else:
+        return redirect('dashboard_director')
+
 
 
 @login_required

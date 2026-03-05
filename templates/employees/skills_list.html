@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Навыки компании{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="page-header mb-4">
+        <div class="page-icon"><i class="bi bi-stars"></i></div>
+        <div class="page-title">
+            <h1>Навыки компании</h1>
+            <p class="text-muted">Управление навыками сотрудников</p>
+        </div>
+    </div>
+
+    <div class="action-buttons mb-4">
+        <a href="{% url 'skill_add' %}" class="btn-custom btn-black">
+            <i class="bi bi-plus-lg"></i> Добавить навык
+        </a>
+    </div>
+
+    {% if skills %}
+    <div class="row g-3">
+        {% for skill in skills %}
+        <div class="col-md-4">
+            <a href="{% url 'skill_detail' skill.pk %}" class="text-decoration-none">
+                <div class="card border-0 shadow-sm h-100 p-3" style="cursor:pointer; transition: 0.2s;"
+                     onmouseover="this.style.transform='translateY(-2px)'"
+                     onmouseout="this.style.transform='translateY(0)'">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="fw-bold text-dark mb-1">{{ skill.name }}</h5>
+                            <span class="badge bg-primary rounded-pill mb-2">{{ skill.category }}</span>
+                            {% if skill.description %}
+                                <p class="text-muted small mb-0">{{ skill.description|truncatechars:60 }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="text-center ms-3">
+                            <div class="fw-bold fs-4 text-dark">{{ skill.employeeskill_set.count }}</div>
+                            <small class="text-muted">чел.</small>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-stars display-4 text-muted mb-3 d-block"></i>
+            <h5 class="text-muted">Навыков пока нет</h5>
+            <p class="text-muted small">Добавьте первый навык для компании</p>
+            <a href="{% url 'skill_add' %}" class="btn-custom btn-black mt-2">
+                <i class="bi bi-plus-lg"></i> Добавить навык
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .dashboard-container { max-width: 1400px; margin: 0 auto; }
+</style>
+{% endblock %}

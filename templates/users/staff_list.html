@@ -5,11 +5,17 @@
 <div class="page-header">
     <div class="page-icon"><i class="bi bi-briefcase-fill"></i></div>
     <div class="page-title">
-        <h1>Сотрудники</h1>
-        <p>Управление персоналом: Менеджеры и Разработчики</p>
+        {% if is_employee_view %}
+            <h1>Коллеги</h1>
+            <p>Список сотрудников компании</p>
+        {% else %}
+            <h1>Сотрудники</h1>
+            <p>Управление персоналом: Менеджеры и Разработчики</p>
+        {% endif %}
     </div>
 </div>
 
+{% if not is_employee_view %}
 <!-- Раздел: МЕНЕДЖЕРЫ -->
 <h4 class="mb-3 text-primary"><i class="bi bi-person-badge me-2"></i>Менеджеры ({{ managers.count }})</h4>
 <div class="card mb-4">
@@ -18,57 +24,74 @@
             <thead>
                 <tr>
                     <th>Логин</th>
-                    <th>Имя</th>
-                    <th>Email</th>
-                    <th>Телефон</th> <!-- Если есть поле phone -->
+                    <th>Имя / Фамилия</th>
+                    <th>EMAIL</th>
+                    <th>Телефон</th>
                     <th>Активен</th>
                 </tr>
             </thead>
             <tbody>
-                {% for user in managers %}
+                {% for manager in managers %}
                 <tr>
-                    <td class="fw-bold">{{ user.username }}</td>
-                    <td>{{ user.first_name }} {{ user.last_name }}</td>
-                    <td>{{ user.email }}</td>
-                    <td>{{ user.profile.phone|default:"—" }}</td> <!-- Проверь имя модели профиля -->
-                    <td>{% if user.is_active %}✅{% else %}❌{% endif %}</td>
+                    <td><strong>{{ manager.username }}</strong></td>
+                    <td>{{ manager.first_name }} {{ manager.last_name }}</td>
+                    <td>{{ manager.email }}</td>
+                    <td>{{ manager.phone|default:"—" }}</td>
+                    <td>
+                        {% if manager.is_active %}
+                            <i class="bi bi-check-square-fill text-success"></i>
+                        {% else %}
+                            <i class="bi bi-x-square-fill text-danger"></i>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="5" class="text-center py-3 text-muted">Менеджеров нет</td></tr>
+                <tr><td colspan="5" class="text-center text-muted py-3">Менеджеров нет</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Раздел: СОТРУДНИКИ -->
+<h4 class="mb-3 text-success"><i class="bi bi-code-slash me-2"></i>
+    {% if is_employee_view %}Коллеги{% else %}Разработчики{% endif %}
+    ({{ developers.count }})
+</h4>
+<div class="card mb-4">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Логин</th>
+                    <th>Имя / Фамилия</th>
+                    <th>EMAIL</th>
+                    <th>Телефон</th>
+                    <th>Активен</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dev in developers %}
+                <tr>
+                    <td><strong>{{ dev.username }}</strong></td>
+                    <td>{{ dev.first_name }} {{ dev.last_name }}</td>
+                    <td>{{ dev.email }}</td>
+                    <td>{{ dev.phone|default:"—" }}</td>
+                    <td>
+                        {% if dev.is_active %}
+                            <i class="bi bi-check-square-fill text-success"></i>
+                        {% else %}
+                            <i class="bi bi-x-square-fill text-danger"></i>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-3">Сотрудников нет</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- Раздел: РАЗРАБОТЧИКИ (СОТРУДНИКИ) -->
-<h4 class="mb-3 text-success"><i class="bi bi-code-slash me-2"></i>Разработчики ({{ developers.count }})</h4>
-<div class="card">
-    <div class="card-body p-0">
-        <table class="table table-hover mb-0">
-            <thead>
-                <tr>
-                    <th>Логин</th>
-                    <th>Имя</th>
-                    <th>Email</th>
-                    <th>Телефон</th>
-                    <th>Активен</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for user in developers %}
-                <tr>
-                    <td class="fw-bold">{{ user.username }}</td>
-                    <td>{{ user.first_name }} {{ user.last_name }}</td>
-                    <td>{{ user.email }}</td>
-                    <td>{{ user.profile.phone|default:"—" }}</td>
-                    <td>{% if user.is_active %}✅{% else %}❌{% endif %}</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="5" class="text-center py-3 text-muted">Разработчиков нет</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
 {% endblock %}

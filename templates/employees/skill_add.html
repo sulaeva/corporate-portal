@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Добавить навык{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="page-header mb-4">
+        <div class="page-icon"><i class="bi bi-plus-circle"></i></div>
+        <div class="page-title">
+            <h1>Добавить навык</h1>
+            <p class="text-muted">Добавьте новый навык в систему</p>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm" style="max-width: 600px;">
+        <div class="card-body p-4">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Название навыка</label>
+                    <input type="text" name="name" class="form-control" placeholder="Например: Python" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Категория</label>
+                    <select name="category" class="form-select" required>
+                        <option value="">Выберите категорию</option>
+                        {% for value, label in categories %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Описание (необязательно)</label>
+                    <textarea name="description" class="form-control" rows="3" placeholder="Краткое описание навыка"></textarea>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn-custom btn-black">
+                        <i class="bi bi-check-lg"></i> Сохранить
+                    </button>
+                    <a href="{% url 'skills_list' %}" class="btn-custom btn-outline-custom">Отмена</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .dashboard-container { max-width: 1400px; margin: 0 auto; }
+</style>
+{% endblock %}

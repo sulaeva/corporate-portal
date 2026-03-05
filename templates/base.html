@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Corp System{% endblock %}</title>
 
-    <!-- Ссылки на Bootstrap и иконки -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 
@@ -26,17 +25,14 @@
             min-height: 100vh;
         }
 
-        /* РЕЖИМ ВХОДА */
         body.auth-mode { background: #fff; display: flex; align-items: center; justify-content: center; height: 100vh; }
         body.auth-mode .portal-layout { display: none; }
         body.auth-mode .auth-layout { display: flex !important; }
 
-        /* РЕЖИМ ПОРТАЛА */
         body.portal-mode { background: var(--gray-bg); display: flex; flex-direction: column; }
         body.portal-mode .auth-layout { display: none; }
         body.portal-mode .portal-layout { display: flex !important; }
 
-        /* Стили авторизации */
         .auth-layout { width: 100%; justify-content: center; }
         .auth-card { width: 100%; max-width: 420px; padding: 40px; border: 1px solid #eee; box-shadow: 0 4px 20px rgba(0,0,0,0.03); text-align: center; }
         .logo-text { font-size: 24px; font-weight: 800; letter-spacing: 1px; margin-bottom: 30px; display: block; color: #000; text-decoration: none; text-transform: uppercase; }
@@ -50,7 +46,6 @@
         .auth-footer { margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee; font-size: 13px; color: #6c757d; }
         .auth-footer a { color: #000; text-decoration: none; font-weight: 600; }
 
-        /* Стили портала */
         .portal-layout { width: 100%; flex: 1; }
         .wrapper { display: flex; width: 100%; height: 100%; }
 
@@ -71,7 +66,6 @@
 
         #sidebar ul.components { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
 
-        /* Стили пунктов меню с бейджами */
         #sidebar ul li a {
             padding: 14px 20px;
             display: flex;
@@ -109,7 +103,6 @@
         #content { width: 100%; display: flex; flex-direction: column; }
         .top-navbar { background: #fff; border-bottom: 1px solid var(--gray-border); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; height: 60px; }
 
-        /* Стили для поиска */
         .search-form input {
             border: 1px solid var(--gray-border);
             border-right: none;
@@ -163,7 +156,6 @@
         .table td { padding: 12px 20px; border-bottom: 1px solid var(--gray-border); vertical-align: middle; }
         .table-hover tbody tr:hover { background: #f7fafc; }
 
-        /* Бейджи в меню */
         .badge { font-weight: 600; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; }
         .bg-success { background-color: #d1e7dd !important; color: #0f5132 !important; }
         .bg-warning { background-color: #fff3cd !important; color: #664d03 !important; }
@@ -181,7 +173,6 @@
 </head>
 <body class="{% if request.resolver_match.url_name == 'login' or request.resolver_match.url_name == 'register' %}auth-mode{% else %}portal-mode{% endif %}">
 
-    <!-- МАКЕТ ПОРТАЛА -->
     <div class="portal-layout wrapper">
         <nav id="sidebar">
             <div class="sidebar-header">
@@ -196,45 +187,61 @@
                     </a>
                 </li>
 
-                <!-- ВСЕГО В СИСТЕМЕ -->
+                {% if user.role == 'director' or user.role == 'manager' %}
+                <!-- МЕНЮ ДЛЯ ДИРЕКТОРА И МЕНЕДЖЕРА -->
+
                 <li>
                     <a href="{% url 'users_list' %}" class="{% if request.resolver_match.url_name == 'users_list' %}active{% endif %}">
                         <div class="link-content"><i class="bi bi-people-fill"></i> Всего в системе</div>
-                        <span class="badge bg-secondary rounded-pill">{{ stats.total_users|default:"0" }}</span>
                     </a>
                 </li>
 
-                <!-- СОТРУДНИКИ -->
                 <li>
                     <a href="{% url 'staff_list' %}" class="{% if request.resolver_match.url_name == 'staff_list' %}active{% endif %}">
                         <div class="link-content"><i class="bi bi-briefcase-fill"></i> Сотрудники</div>
-                        <span class="badge bg-primary rounded-pill">{{ stats.total_employees|default:"0" }}</span>
                     </a>
                 </li>
 
-                <!-- ЗАДАЧИ ПОД МОИМ КОНТРОЛЕМ (ИСПРАВЛЕНО) -->
                 <li>
                     <a href="{% url 'task_list' %}?manager={{ request.user.id }}" class="{% if request.GET.manager %}active{% endif %}">
                         <div class="link-content"><i class="bi bi-list-task"></i> Задачи под моим контролем</div>
-                        <!-- Счетчик задач -->
-                        <span class="badge bg-primary rounded-pill">{{ stats.total_tasks|default:"0" }}</span>
                     </a>
                 </li>
 
-                <!-- ВЫПОЛНЕНО (Бывшее "Поручено мною") -->
                 <li>
                     <a href="{% url 'task_done_list' %}" class="{% if request.resolver_match.url_name == 'task_done_list' %}active{% endif %}">
                         <div class="link-content"><i class="bi bi-check-circle-fill"></i> Выполнено</div>
-                        <span class="badge bg-success rounded-pill">{{ stats.tasks_done|default:"0" }}</span>
                     </a>
                 </li>
 
-                <!-- КОМАНДЫ (Общий список) -->
                 <li>
                     <a href="{% url 'my_teams_list' %}" class="{% if request.resolver_match.url_name == 'my_teams_list' %}active{% endif %}">
                         <div class="link-content"><i class="bi bi-people-fill"></i> Команды</div>
                     </a>
                 </li>
+
+                <li>
+                    <a href="{% url 'skills_list' %}" class="{% if request.resolver_match.url_name == 'skills_list' or request.resolver_match.url_name == 'skill_detail' %}active{% endif %}">
+                        <div class="link-content"><i class="bi bi-stars"></i> Навыки</div>
+                    </a>
+                </li>
+
+                {% else %}
+                <!-- МЕНЮ ДЛЯ СОТРУДНИКА -->
+
+                <li>
+                    <a href="{% url 'task_list' %}" class="{% if request.resolver_match.url_name == 'task_list' %}active{% endif %}">
+                        <div class="link-content"><i class="bi bi-check2-square"></i> Мои задачи</div>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{% url 'staff_list' %}" class="{% if request.resolver_match.url_name == 'staff_list' %}active{% endif %}">
+                        <div class="link-content"><i class="bi bi-people"></i> Коллеги</div>
+                    </a>
+                </li>
+
+                {% endif %}
 
                 <!-- РАЗДЕЛ: ЛИЧНОЕ -->
                 <div class="menu-divider"></div>
@@ -254,34 +261,46 @@
                     </a>
                 </li>
                 {% endif %}
+
             </ul>
         </nav>
 
         <div id="content">
             <nav class="top-navbar">
-                <button type="button" id="sidebarCollapse" class="btn btn-sm btn-outline-secondary d-md-none"><i class="bi bi-list"></i></button>
+                <button type="button" id="sidebarCollapse" class="btn btn-sm btn-outline-secondary d-md-none">
+                    <i class="bi bi-list"></i>
+                </button>
 
-                <!-- ПОИСК -->
                 <form action="{% url 'global_search' %}" method="GET" class="search-form d-flex">
                     <input type="text" name="q" placeholder="Поиск..." value="{{ request.GET.q }}">
                     <button type="submit"><i class="bi bi-search"></i></button>
                 </form>
-                <!-- КОНЕЦ ПОИСКА -->
 
                 <div class="user-menu">
                     <div class="user-info d-none d-sm-block">
-                        <strong>{{ user.username }}</strong>
+                        <strong>
+                            {% if user.get_full_name %}
+                                {{ user.get_full_name }}
+                            {% else %}
+                                {{ user.username }}
+                            {% endif %}
+                        </strong>
                         <span>{{ user.get_role_display }}</span>
                     </div>
                     <div class="avatar-circle">{{ user.username|first|upper }}</div>
-                    <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-box-arrow-right"></i></a>
+                    <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </a>
                 </div>
             </nav>
 
             <main class="main-container">
                 {% if messages %}
                 {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-3 shadow-sm border-0">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-3 shadow-sm border-0">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
                 {% endfor %}
                 {% endif %}
 

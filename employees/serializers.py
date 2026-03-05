@@ -1,32 +1,20 @@
 from rest_framework import serializers
-from users.models import User  # ← ✅ ИМПОРТИРУЕМ ИЗ ТВОЕГО APPS USERS!
-from .models import Department, Employee, Skill, EmployeeSkill, Project, Vacation, Task
+from users.models import User
+from .models import Department, Employee, Skill, EmployeeSkill, Project, Vacation
+from tasks.models import Task
+from teams.models import Team
 
 
 # ==================== ПОЛЬЗОВАТЕЛЬ ====================
 
 class UserRegisterSerializer(serializers.ModelSerializer):
-    """Сериализатор регистрации пользователя"""
     password = serializers.CharField(write_only=True, min_length=8)
     password_confirm = serializers.CharField(write_only=True)
-
-    # Добавляем роль (если она есть в твоей модели User)
-    # Если поле role нет в модели User, удали эту строку и её обработку в create()
     role = serializers.ChoiceField(choices=User.ROLE_CHOICES, default='employee', required=False)
 
     class Meta:
         model = User
-        # ДОБАВЛЕНО: first_name и last_name
-        # УБРАНО: phone и position (их нет в стандартной модели User, это вызовет ошибку)
-        fields = [
-            'username',
-            'email',
-            'password',
-            'password_confirm',
-            'role',
-            'first_name',
-            'last_name'
-        ]
+        fields = ['username', 'email', 'password', 'password_confirm', 'role', 'first_name', 'last_name']
         extra_kwargs = {
             'password': {'write_only': True},
             'first_name': {'required': False},
@@ -45,13 +33,9 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        # Удаляем поле подтверждения пароля, оно не нужно для сохранения
         validated_data.pop('password_confirm')
-
-        # Извлекаем роль, если она была передана
         role = validated_data.pop('role', 'employee')
 
-        # Создаем пользователя
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
@@ -60,9 +44,10 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             last_name=validated_data.get('last_name', '')
         )
 
-        # Если у твоей модели User есть поле 'role', раскомментируй следующую строку:
-        # user.role = role
-        # user.save()
+        user.role = role
+        if role == 'director':
+            user.is_staff = True
+        user.save()
 
         return user
 
@@ -70,7 +55,6 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 # ==================== ОТДЕЛЫ ====================
 
 class DepartmentSerializer(serializers.ModelSerializer):
-    """Сериализатор отдела"""
     employees_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -95,16 +79,17 @@ class DepartmentSerializer(serializers.ModelSerializer):
 # ==================== СОТРУДНИКИ ====================
 
 class EmployeeSerializer(serializers.ModelSerializer):
-    # Добавляем поле full_name виртуально, объединяя имя и фамилию
     full_name = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        # Теперь поля соответствуют модели User + наше виртуальное поле
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'full_name', 'is_active', 'date_joined']
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'full_name', 'role', 'phone', 'position', 'is_active', 'date_joined'
+        ]
+        read_only_fields = ['date_joined', 'full_name']
 
     def get_full_name(self, obj):
-        # Возвращаем "Имя Фамилия" или просто username, если имени нет
         if obj.first_name or obj.last_name:
             return f"{obj.first_name} {obj.last_name}".strip()
         return obj.username
@@ -113,7 +98,6 @@ class EmployeeSerializer(serializers.ModelSerializer):
 # ==================== НАВЫКИ ====================
 
 class SkillSerializer(serializers.ModelSerializer):
-    """Сериализатор навыка"""
     employees_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -122,7 +106,7 @@ class SkillSerializer(serializers.ModelSerializer):
         read_only_fields = ['employees_count']
 
     def get_employees_count(self, obj):
-        return obj.employeeskill_set.count()
+        return obj.employees.count()  # ← исправлено
 
     def validate_name(self, value):
         if len(value) < 2:
@@ -131,24 +115,16 @@ class SkillSerializer(serializers.ModelSerializer):
 
 
 class EmployeeSkillSerializer(serializers.ModelSerializer):
-    """Сериализатор связи сотрудник-навык"""
     employee_name = serializers.CharField(source='employee.full_name', read_only=True)
     skill_name = serializers.CharField(source='skill.name', read_only=True)
     level_display = serializers.CharField(source='get_level_display', read_only=True)
 
     class Meta:
         model = EmployeeSkill
-        fields = [
-            'id', 'employee', 'employee_name', 'skill', 'skill_name',
-            'level', 'level_display'
-        ]
+        fields = ['id', 'employee', 'employee_name', 'skill', 'skill_name', 'level', 'level_display']
 
     def validate(self, data):
-        # Проверка на дубликат
-        if EmployeeSkill.objects.filter(
-            employee=data['employee'],
-            skill=data['skill']
-        ).exists():
+        if EmployeeSkill.objects.filter(employee=data['employee'], skill=data['skill']).exists():
             raise serializers.ValidationError("Этот навык уже добавлен сотруднику!")
         return data
 
@@ -156,8 +132,7 @@ class EmployeeSkillSerializer(serializers.ModelSerializer):
 # ==================== ПРОЕКТЫ ====================
 
 class ProjectSerializer(serializers.ModelSerializer):
-    """Сериализатор проекта"""
-    manager_name = serializers.CharField(source='manager.full_name', read_only=True)
+    manager_name = serializers.SerializerMethodField()
     team_count = serializers.SerializerMethodField()
     status_display = serializers.CharField(source='get_status_display', read_only=True)
 
@@ -170,6 +145,11 @@ class ProjectSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['created_at', 'status_display', 'manager_name', 'team_count']
 
+    def get_manager_name(self, obj):
+        if obj.manager:
+            return obj.manager.get_full_name() or obj.manager.username
+        return None
+
     def get_team_count(self, obj):
         return obj.team.count()
 
@@ -179,7 +159,6 @@ class ProjectSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        # Проверка дат
         if 'start_date' in data and 'end_date' in data:
             if data['end_date'] and data['end_date'] < data['start_date']:
                 raise serializers.ValidationError("Дата окончания не может быть раньше даты начала!")
@@ -187,7 +166,6 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 
 class ProjectTeamSerializer(serializers.ModelSerializer):
-    """Сериализатор для добавления команды в проект"""
     class Meta:
         model = Project
         fields = ['team']
@@ -196,7 +174,6 @@ class ProjectTeamSerializer(serializers.ModelSerializer):
 # ==================== ОТПУСКА ====================
 
 class VacationSerializer(serializers.ModelSerializer):
-    """Сериализатор заявки на отпуск"""
     employee_name = serializers.CharField(source='employee.full_name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     duration_days = serializers.SerializerMethodField()
@@ -213,11 +190,9 @@ class VacationSerializer(serializers.ModelSerializer):
         return (obj.end_date - obj.start_date).days + 1
 
     def validate(self, data):
-        # Проверка дат
         if 'start_date' in data and 'end_date' in data:
             if data['end_date'] < data['start_date']:
                 raise serializers.ValidationError("Дата окончания не может быть раньше даты начала!")
-            # Проверка на будущее
             from datetime import date
             if data['start_date'] < date.today():
                 raise serializers.ValidationError("Дата начала не может быть в прошлом!")
@@ -227,46 +202,90 @@ class VacationSerializer(serializers.ModelSerializer):
 # ==================== ЗАДАЧИ ====================
 
 class TaskSerializer(serializers.ModelSerializer):
-    """Сериализатор задачи"""
-    employee_name = serializers.CharField(source='employee.full_name', read_only=True)
-    project_name = serializers.CharField(source='project.name', read_only=True)
-    priority_display = serializers.CharField(source='get_priority_display', read_only=True)
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    employee_name = serializers.SerializerMethodField()
+    manager_name = serializers.SerializerMethodField()
+
+    # ✅ Только директор и менеджер могут быть создателем задачи
+    manager = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role__in=['director', 'manager']),
+        required=False,
+        allow_null=True
+    )
+
+    # ✅ Только сотрудники могут быть исполнителями
+    employee = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role='employee')
+    )
 
     class Meta:
         model = Task
         fields = [
             'id', 'title', 'description', 'employee', 'employee_name',
-            'project', 'project_name', 'priority', 'priority_display',
-            'status', 'status_display', 'due_date', 'created_at', 'completed_at'
+            'manager', 'manager_name', 'team',
+            'priority', 'status', 'due_date', 'created_at'
         ]
-        read_only_fields = ['created_at', 'completed_at', 'priority_display', 'status_display', 'employee_name', 'project_name']
 
-    def validate_title(self, value):
-        if len(value) < 5:
-            raise serializers.ValidationError("Название задачи должно быть минимум 5 символов!")
+    def get_employee_name(self, obj):
+        return obj.employee.get_full_name() or obj.employee.username
+
+    def get_manager_name(self, obj):
+        if obj.manager:
+            return obj.manager.get_full_name() or obj.manager.username
+        return None
+
+
+# ==================== КОМАНДЫ ====================
+
+class TeamSerializer(serializers.ModelSerializer):
+    manager = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role__in=['director', 'manager'])
+    )
+    manager_name = serializers.SerializerMethodField()
+    members_count = serializers.SerializerMethodField()
+    members_detail = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Team
+        fields = [
+            'id', 'name', 'description',
+            'manager', 'manager_name',
+            'members', 'members_detail', 'members_count',
+            'created_at'
+        ]
+
+    def get_manager_name(self, obj):
+        return obj.manager.get_full_name() or obj.manager.username
+
+    def get_members_count(self, obj):
+        return obj.members.count()
+
+    def get_members_detail(self, obj):
+        return [
+            {
+                'id': m.id,
+                'username': m.username,
+                'full_name': m.get_full_name() or m.username,
+                'role': m.get_role_display(),
+                'position': m.position or '—'
+            }
+            for m in obj.members.all()
+        ]
+
+    def validate_manager(self, value):
+        if value.role == 'employee':
+            raise serializers.ValidationError("Сотрудник не может быть менеджером команды!")
         return value
 
-    def validate(self, data):
-        # Проверка дат
-        if 'due_date' in data and data['due_date']:
-            from datetime import date
-            if data['due_date'] < date.today():
-                raise serializers.ValidationError("Срок выполнения не может быть в прошлом!")
-        return data
 
-
-# ==================== ДЛЯ АДМИНКИ (краткие версии) ====================
+# ==================== ДЛЯ АДМИНКИ ====================
 
 class DepartmentListSerializer(serializers.ModelSerializer):
-    """Краткий сериализатор для списка отделов"""
     class Meta:
         model = Department
         fields = ['id', 'name', 'code']
 
 
 class EmployeeListSerializer(serializers.ModelSerializer):
-    """Краткий сериализатор для списка сотрудников"""
     department_name = serializers.CharField(source='department.name', read_only=True)
 
     class Meta:
@@ -277,7 +296,6 @@ class EmployeeListSerializer(serializers.ModelSerializer):
 # ==================== ДЛЯ НОВОЙ СИСТЕМЫ (роли) ====================
 
 class UserSerializer(serializers.ModelSerializer):
-    """Сериализатор пользователя для API"""
     role_display = serializers.CharField(source='get_role_display', read_only=True)
     department_name = serializers.CharField(source='department.name', read_only=True)
 

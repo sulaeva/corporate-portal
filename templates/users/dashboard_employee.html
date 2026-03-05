@@ -6,184 +6,19 @@
 <div class="dashboard-container">
     <!-- Заголовок -->
     <div class="page-header mb-4">
-        <h1 class="page-title mb-1">Личный кабинет</h1>
-        <p class="text-muted mb-0">Добро пожаловать, {{ user.username }}!</p>
+        <h1 class="page-title mb-1">Добро пожаловать,
+            {% if user.first_name %}
+                {{ user.first_name }} {{ user.last_name }}
+            {% else %}
+                {{ user.username }}
+            {% endif %}!
+        </h1>
+        <p class="text-muted mb-0">Панель управления <strong>Сотрудника</strong>.</p>
     </div>
 
-    <!-- Информация о пользователе -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white py-3 border-bottom">
-            <h5 class="mb-0 fw-bold text-dark fs-6">
-                <i class="bi bi-person-badge me-2 text-primary"></i>Мои данные
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <small class="text-muted d-block text-uppercase fs-7 fw-bold">Должность</small>
-                    <span class="text-dark fw-medium">{{ user.position|default:"Не указана" }}</span>
-                </div>
-                <div class="col-md-3">
-                    <small class="text-muted d-block text-uppercase fs-7 fw-bold">Email</small>
-                    <span class="text-dark fw-medium">{{ user.email }}</span>
-                </div>
-                <div class="col-md-3">
-                    <small class="text-muted d-block text-uppercase fs-7 fw-bold">Телефон</small>
-                    <span class="text-dark fw-medium">{{ user.phone|default:"Не указан" }}</span>
-                </div>
-                <div class="col-md-3">
-                    <small class="text-muted d-block text-uppercase fs-7 fw-bold">Отдел</small>
-                    <span class="text-dark fw-medium">
-                        {% if user.department %}{{ user.department.name }}{% else %}—{% endif %}
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4">
-        <!-- Мои задачи (Основной блок) -->
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold text-dark fs-6">
-                        <i class="bi bi-check2-square me-2 text-primary"></i>Мои задачи
-                    </h5>
-                    <span class="badge bg-primary rounded-pill">{{ my_tasks.count }}</span>
-                </div>
-                <div class="card-body p-0">
-                    {% if my_tasks %}
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light">
-                                <tr>
-                                    <th class="ps-4 py-3 text-muted text-uppercase fs-7 fw-bold">Название</th>
-                                    <th class="py-3 text-muted text-uppercase fs-7 fw-bold">Статус</th>
-                                    <th class="py-3 text-muted text-uppercase fs-7 fw-bold">Дедлайн</th>
-                                    <th class="pe-4 py-3 text-end text-muted text-uppercase fs-7 fw-bold">Действие</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for task in my_tasks %}
-                                <tr class="border-bottom">
-                                    <td class="ps-4 py-3">
-                                        <div class="fw-semibold text-dark">{{ task.title }}</div>
-                                        <small class="text-muted">{{ task.description|truncatechars:40 }}</small>
-                                    </td>
-                                    <td class="py-3">
-                                        {% if task.status == 'done' %}
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
-                                                <i class="bi bi-check-lg me-1"></i>Выполнено
-                                            </span>
-                                        {% elif task.status == 'inprogress' %}
-                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 rounded-pill">
-                                                <i class="bi bi-hourglass-split me-1"></i>В работе
-                                            </span>
-                                        {% else %}
-                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 rounded-pill">
-                                                Новая
-                                            </span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="py-3 text-dark">
-                                        {% if task.due_date %}
-                                            {{ task.due_date|date:"d.m.Y" }}
-                                        {% else %}
-                                            <span class="text-muted">—</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="pe-4 py-3 text-end">
-                                        {% if task.status == 'todo' %}
-                                            <a href="{% url 'task_change_status' task.pk 'inprogress' %}" class="btn btn-sm btn-outline-primary">Начать</a>
-                                        {% elif task.status == 'inprogress' %}
-                                            <a href="{% url 'task_change_status' task.pk 'done' %}" class="btn btn-sm btn-outline-success">Завершить</a>
-                                        {% else %}
-                                            <span class="text-success small fw-bold"><i class="bi bi-check-circle-fill"></i> Готово</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="text-center py-5">
-                        <div class="mb-3 text-muted">
-                            <i class="bi bi-clipboard-check display-4"></i>
-                        </div>
-                        <h6 class="text-muted">Нет активных задач</h6>
-                        <p class="text-muted small">Ожидайте назначения новых задач от руководителя</p>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Коллеги и Команды (Боковая панель) -->
-        <div class="col-lg-4">
-            <!-- Список коллег -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white py-3 border-bottom">
-                    <h5 class="mb-0 fw-bold text-dark fs-6">
-                        <i class="bi bi-people me-2 text-primary"></i>Коллеги
-                    </h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush">
-                        {% for colleague in employees_list %}
-                            {% if colleague.id != user.id %}
-                            <div class="list-group-item px-3 py-3 d-flex align-items-center justify-content-between border-bottom">
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-light border rounded-circle d-flex justify-content-center align-items-center me-3"
-                                         style="width: 36px; height: 36px; font-weight: 600; color: var(--primary-color); font-size: 0.9rem;">
-                                        {{ colleague.username|first|upper }}
-                                    </div>
-                                    <div>
-                                        <div class="fw-medium text-dark small">{{ colleague.username }}</div>
-                                        <div class="text-muted" style="font-size: 0.75rem;">{{ colleague.position|default:"Сотрудник" }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-                        {% empty %}
-                            <div class="p-3 text-center text-muted small">Нет других сотрудников</div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Мои команды -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white py-3 border-bottom">
-                    <h5 class="mb-0 fw-bold text-dark fs-6">
-                        <i class="bi bi-diagram-3 me-2 text-primary"></i>Мои команды
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if my_teams %}
-                        <div class="d-flex flex-column gap-2">
-                            {% for team in my_teams %}
-                            <div class="p-3 border rounded bg-light">
-                                <div class="fw-bold text-dark small">{{ team.name }}</div>
-                                <div class="text-muted" style="font-size: 0.75rem;">
-                                    <i class="bi bi-person-badge me-1"></i>{{ team.manager.username }}
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <p class="text-muted small text-center mb-0">Вы не состоите в командах</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Дополнительные стили -->
 <style>
     .fs-7 { font-size: 0.75rem; }
     .dashboard-container { max-width: 1400px; margin: 0 auto; }
-    .text-primary { color: #1E3A5F !important; } /* Используем основной темно-синий */
+    .text-primary { color: #1E3A5F !important; }
 </style>
 {% endblock %}

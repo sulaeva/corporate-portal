@@ -8,52 +8,41 @@ from employees.models import Department, Employee
 from tasks.models import Task
 from teams.models import Team
 from django.db.models import Q # Важно для сложного поиска
+from employees.models import EmployeeSkill
 
 
 
-# --- Регистрация ---
 def register(request):
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
-
-        # 🔍 ПРОВЕРКА ВАЛИДНОСТИ
         if form.is_valid():
-            # 1. Сохраняем пользователя
             user = form.save(commit=False)
-
-            # Логика прав для директора
             if user.role == 'director':
                 user.is_staff = True
+            user.save()
 
-            user.save()  # Финальное сохранение в БД
+            # ✅ Сохраняем навыки
+            selected_skills = form.cleaned_data.get('skills', [])
+            level = form.cleaned_data.get('skill_level', 'basic')
+            for skill in selected_skills:
+                EmployeeSkill.objects.create(employee=user, skill=skill, level=level)
 
-            # 2. Автоматический вход
             login(request, user)
             messages.success(request, f'Добро пожаловать, {user.username}!')
 
-            # 3. Перенаправление
-            try:
-                if user.role == 'director':
-                    return redirect('dashboard_director')
-                elif user.role == 'manager':
-                    return redirect('dashboard_manager')
-                else:
-                    return redirect('dashboard_employee')
-            except Exception as e:
-                print(f"Ошибка редиректа: {e}")
-                return redirect('my_teams_list')
-
+            if user.role == 'director':
+                return redirect('dashboard_director')
+            elif user.role == 'manager':
+                return redirect('dashboard_manager')
+            else:
+                return redirect('dashboard_employee')
         else:
-            # ❌ ЕСЛИ ФОРМА НЕ ВАЛИДНА - ВЫВОДИМ ОШИБКИ В ТЕРМИНАЛ
             print("\n--- ОШИБКИ РЕГИСТРАЦИИ ---")
             for field, errors in form.errors.items():
                 print(f"Поле '{field}': {errors}")
             print("--------------------------\n")
-
-            messages.error(request, "Регистрация не удалась. Проверьте данные (особенно пароль и роль).")
-
+            messages.error(request, "Регистрация не удалась. Проверьте данные.")
     else:
-        # GET запрос
         form = UserRegistrationForm()
 
     return render(request, 'users/register.html', {'form': form})
@@ -149,25 +138,17 @@ def dashboard_manager(request):
     return render(request, 'users/dashboard_manager.html', context)
 
 
-# --- Dashboard Сотрудника ---
 @login_required
 def dashboard_employee(request):
-    # ✅ СТРОГАЯ ПРОВЕРКА: Только сотрудник
     if request.user.role != 'employee':
         messages.error(request, "У вас нет доступа к этому разделу.")
         return redirect('dashboard')
 
-    # ✅ ПОЛУЧАЕМ ТОЛЬКО СОТРУДНИКОВ
-    employees_list = User.objects.filter(role='employee')
-
-    # Получаем задачи сотрудника
-    my_tasks = Task.objects.filter(employee=request.user)
-    my_teams = Team.objects.filter(members=request.user)
+    # ✅ Только активные задачи (не выполненные)
+    my_tasks = Task.objects.filter(employee=request.user).exclude(status='done')
 
     context = {
-        'employees_list': employees_list,
         'my_tasks': my_tasks,
-        'my_teams': my_teams,
     }
     return render(request, 'users/dashboard_employee.html', context)
 
@@ -189,11 +170,6 @@ def users_list(request):
 
 @login_required
 def staff_list(request):
-    # Разделяем на Менеджеров и Сотрудников
-    managers = User.objects.filter(role='manager').order_by('username')
-    developers = User.objects.filter(role='employee').order_by('username')
-
-    # !!! ДОБАВЛЕНО: Расчет статистики для меню !!!
     stats = {
         'total_users': User.objects.count(),
         'total_employees': User.objects.filter(role='employee').count(),
@@ -201,11 +177,22 @@ def staff_list(request):
         'tasks_done': Task.objects.filter(manager=request.user, status='done').count(),
     }
 
-    context = {
-        'managers': managers,
-        'developers': developers,
-        'stats': stats  # !!! Передаем stats в шаблон !!!
-    }
+    # Для сотрудника показываем только коллег-сотрудников
+    if request.user.role == 'employee':
+        context = {
+            'developers': User.objects.filter(role='employee').order_by('username'),
+            'managers': None,  # ← не передаём менеджеров
+            'stats': stats,
+            'is_employee_view': True,  # ← флаг для шаблона
+        }
+    else:
+        context = {
+            'managers': User.objects.filter(role='manager').order_by('username'),
+            'developers': User.objects.filter(role='employee').order_by('username'),
+            'stats': stats,
+            'is_employee_view': False,
+        }
+
     return render(request, 'users/staff_list.html', context)
 
 

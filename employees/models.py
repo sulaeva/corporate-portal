@@ -1,9 +1,8 @@
 from django.db import models
-from django.conf import settings  # ← Импортируем settings
+from django.conf import settings
 
 
 class Department(models.Model):
-    """Модель отдела"""
     name = models.CharField(max_length=100, verbose_name="Название отдела")
     code = models.CharField(max_length=10, unique=True, verbose_name="Код отдела")
     office_number = models.CharField(max_length=20, verbose_name="Номер кабинета")
@@ -19,7 +18,6 @@ class Department(models.Model):
 
 
 class Employee(models.Model):
-    """Модель сотрудника"""
     POSITION_CHOICES = [
         ('junior', 'Junior'),
         ('middle', 'Middle'),
@@ -32,16 +30,10 @@ class Employee(models.Model):
     email = models.EmailField(unique=True, verbose_name="Email")
     phone = models.CharField(max_length=20, verbose_name="Телефон")
     position = models.CharField(max_length=20, choices=POSITION_CHOICES, default='junior', verbose_name="Должность")
-
-    # ✅ ПРАВИЛЬНО: Используем settings.AUTH_USER_MODEL
     department = models.ForeignKey(
-        Department,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='employees',
-        verbose_name="Отдел"
+        Department, on_delete=models.SET_NULL, null=True,
+        related_name='employees', verbose_name="Отдел"
     )
-
     hire_date = models.DateField(verbose_name="Дата приема")
     is_active = models.BooleanField(default=True, verbose_name="Активен")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -52,11 +44,10 @@ class Employee(models.Model):
         ordering = ['full_name']
 
     def __str__(self):
-        return f"{self.full_name} ({self.position_display})"
+        return f"{self.full_name}"
 
 
 class Skill(models.Model):
-    """Модель навыка"""
     CATEGORY_CHOICES = [
         ('programming', 'Programming'),
         ('framework', 'Framework'),
@@ -80,14 +71,17 @@ class Skill(models.Model):
 
 
 class EmployeeSkill(models.Model):
-    """Модель связи сотрудник-навык"""
     LEVEL_CHOICES = [
         ('basic', 'Basic'),
         ('intermediate', 'Intermediate'),
         ('advanced', 'Advanced'),
     ]
 
-    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name='skills')
+    employee = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='skills'
+    )
     skill = models.ForeignKey(Skill, on_delete=models.CASCADE, related_name='employees')
     level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='basic')
 
@@ -97,11 +91,10 @@ class EmployeeSkill(models.Model):
         unique_together = ['employee', 'skill']
 
     def __str__(self):
-        return f"{self.employee.full_name} - {self.skill.name} ({self.level_display})"
+        return f"{self.employee.username} - {self.skill.name} ({self.level})"
 
 
 class Project(models.Model):
-    """Модель проекта"""
     STATUS_CHOICES = [
         ('planning', 'Planning'),
         ('in_progress', 'In Progress'),
@@ -114,17 +107,15 @@ class Project(models.Model):
     start_date = models.DateField(verbose_name="Дата начала")
     end_date = models.DateField(null=True, blank=True, verbose_name="Дата окончания")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='planning')
-
-    # ✅ ПРАВИЛЬНО: Используем settings.AUTH_USER_MODEL
     manager = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name='managed_projects',
-        verbose_name="Менеджер проекта"
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, related_name='managed_projects', verbose_name="Менеджер проекта"
     )
-
-    team = models.ManyToManyField(Employee, blank=True, related_name='projects')
+    team = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name='projects'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -137,21 +128,16 @@ class Project(models.Model):
 
 
 class Vacation(models.Model):
-    """Модель заявки на отпуск"""
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     ]
 
-    # ✅ ПРАВИЛЬНО: Используем settings.AUTH_USER_MODEL
     employee = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='vacations',
-        verbose_name="Сотрудник"
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='vacations', verbose_name="Сотрудник"
     )
-
     start_date = models.DateField(verbose_name="Дата начала")
     end_date = models.DateField(verbose_name="Дата окончания")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
@@ -165,53 +151,3 @@ class Vacation(models.Model):
 
     def __str__(self):
         return f"{self.employee.username} - {self.start_date} до {self.end_date}"
-
-
-class Task(models.Model):
-    """Модель задачи"""
-    PRIORITY_CHOICES = [
-        ('low', 'Low'),
-        ('medium', 'Medium'),
-        ('high', 'High'),
-        ('urgent', 'Urgent'),
-    ]
-
-    STATUS_CHOICES = [
-        ('todo', 'To Do'),
-        ('in_progress', 'In Progress'),
-        ('done', 'Done'),
-    ]
-
-    title = models.CharField(max_length=200, verbose_name="Название задачи")
-    description = models.TextField(verbose_name="Описание")
-
-    # ✅ ПРАВИЛЬНО: Используем settings.AUTH_USER_MODEL
-    employee = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='tasks',
-        verbose_name="Исполнитель"
-    )
-
-    project = models.ForeignKey(
-        Project,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='tasks',
-        verbose_name="Проект"
-    )
-
-    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='todo')
-    due_date = models.DateField(null=True, blank=True, verbose_name="Срок выполнения")
-    created_at = models.DateTimeField(auto_now_add=True)
-    completed_at = models.DateField(null=True, blank=True)
-
-    class Meta:
-        verbose_name = "Задача"
-        verbose_name_plural = "Задачи"
-        ordering = ['-priority', 'due_date']
-
-    def __str__(self):
-        return self.title

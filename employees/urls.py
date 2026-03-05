@@ -13,9 +13,12 @@ from .views import (
     ProjectViewSet,
     VacationViewSet,
     TaskViewSet,
+    TeamViewSet,
 )
 
-# Создаём роутер
+from . import views_skills
+
+
 router = DefaultRouter()
 router.register(r'register', UserRegisterViewSet, basename='register')
 router.register(r'departments', DepartmentViewSet, basename='department')
@@ -25,9 +28,17 @@ router.register(r'employee-skills', EmployeeSkillViewSet, basename='employee-ski
 router.register(r'projects', ProjectViewSet, basename='project')
 router.register(r'vacations', VacationViewSet, basename='vacation')
 router.register(r'tasks', TaskViewSet, basename='task')
+router.register(r'teams', TeamViewSet, basename='team')
 
 urlpatterns = [
     path('', include(router.urls)),
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    # ✅ Сайтовая часть навыков — отдельные префиксы чтобы не конфликтовать с API
+    path('skills-list/', views_skills.skills_list, name='skills_list'),
+    path('skills-add/', views_skills.skill_add, name='skill_add'),
+    path('skills-detail/<int:pk>/', views_skills.skill_detail, name='skill_detail'),
+    path('skills-delete/<int:pk>/', views_skills.skill_delete, name='skill_delete'),
+    path('skills-assign/<int:pk>/', views_skills.skill_assign, name='skill_assign'),
 ]

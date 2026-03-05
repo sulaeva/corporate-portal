@@ -1,12 +1,15 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from users.models import User  # ← Импортируем из твоего apps users!
+from users.models import User
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from datetime import date
+from teams.models import Team
+from .models import Department, Employee, Skill, EmployeeSkill, Project, Vacation
+from tasks.models import Task
+from django.db import models
 
-from .models import Department, Employee, Skill, EmployeeSkill, Project, Vacation, Task
 from .serializers import (
     UserRegisterSerializer,
     DepartmentSerializer,
@@ -17,13 +20,13 @@ from .serializers import (
     ProjectTeamSerializer,
     VacationSerializer,
     TaskSerializer,
+    TeamSerializer,
 )
 
 
 # ==================== ПОЛЬЗОВАТЕЛЬ ====================
 
 class UserRegisterViewSet(viewsets.ModelViewSet):
-    """ViewSet для регистрации пользователей"""
     queryset = User.objects.all()
     serializer_class = UserRegisterSerializer
     permission_classes = [permissions.AllowAny]
@@ -44,7 +47,6 @@ class UserRegisterViewSet(viewsets.ModelViewSet):
 # ==================== ОТДЕЛЫ ====================
 
 class DepartmentViewSet(viewsets.ModelViewSet):
-    """ViewSet для управления отделами"""
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -55,7 +57,6 @@ class DepartmentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def employees(self, request, pk=None):
-        """Получить всех сотрудников отдела"""
         department = self.get_object()
         employees = Employee.objects.filter(department=department)
         serializer = EmployeeSerializer(employees, many=True)
@@ -65,12 +66,9 @@ class DepartmentViewSet(viewsets.ModelViewSet):
 # ==================== СОТРУДНИКИ ====================
 
 class EmployeeViewSet(viewsets.ModelViewSet):
-    """ViewSet для сотрудников (показывает всех пользователей системы)"""
-    queryset = User.objects.all()  # Показываем ВСЕХ из базы Users
+    queryset = User.objects.all()
     serializer_class = EmployeeSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-
-    # Настройки поиска и фильтров под модель User
+    permission_classes = [permissions.IsAuthenticated]  # ← было IsAuthenticatedOrReadOnly
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['is_active']
     search_fields = ['username', 'email', 'first_name', 'last_name']
@@ -86,35 +84,10 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(users, many=True)
         return Response(serializer.data)
 
-    # @action(detail=True, methods=['get'])
-    # def skills(self, request, pk=None):
-    #     """Получить навыки сотрудника"""
-    #     employee = self.get_object()
-    #     skills = EmployeeSkill.objects.filter(employee=employee)
-    #     serializer = EmployeeSkillSerializer(skills, many=True)
-    #     return Response(serializer.data)
-    #
-    # @action(detail=True, methods=['get'])
-    # def tasks(self, request, pk=None):
-    #     """Получить задачи сотрудника"""
-    #     employee = self.get_object()
-    #     tasks = Task.objects.filter(employee=employee)
-    #     serializer = TaskSerializer(tasks, many=True)
-    #     return Response(serializer.data)
-    #
-    # @action(detail=True, methods=['get'])
-    # def vacations(self, request, pk=None):
-    #     """Получить заявки на отпуск сотрудника"""
-    #     employee = self.get_object()
-    #     vacations = Vacation.objects.filter(employee=employee)
-    #     serializer = VacationSerializer(vacations, many=True)
-    #     return Response(serializer.data)
-
 
 # ==================== НАВЫКИ ====================
 
 class SkillViewSet(viewsets.ModelViewSet):
-    """ViewSet для управления навыками"""
     queryset = Skill.objects.all()
     serializer_class = SkillSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -125,7 +98,6 @@ class SkillViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def by_category(self, request):
-        """Получить навыки по категории"""
         category = request.query_params.get('category')
         if category:
             skills = Skill.objects.filter(category=category)
@@ -135,7 +107,6 @@ class SkillViewSet(viewsets.ModelViewSet):
 
 
 class EmployeeSkillViewSet(viewsets.ModelViewSet):
-    """ViewSet для управления навыками сотрудников"""
     queryset = EmployeeSkill.objects.all()
     serializer_class = EmployeeSkillSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -145,7 +116,6 @@ class EmployeeSkillViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def by_employee(self, request):
-        """Получить навыки по сотруднику"""
         employee_id = request.query_params.get('employee_id')
         if employee_id:
             skills = EmployeeSkill.objects.filter(employee_id=employee_id)
@@ -157,7 +127,6 @@ class EmployeeSkillViewSet(viewsets.ModelViewSet):
 # ==================== ПРОЕКТЫ ====================
 
 class ProjectViewSet(viewsets.ModelViewSet):
-    """ViewSet для управления проектами"""
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -168,21 +137,18 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def active(self, request):
-        """Получить активные проекты"""
         projects = Project.objects.filter(status__in=['planning', 'in_progress'])
         serializer = self.get_serializer(projects, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def completed(self, request):
-        """Получить завершённые проекты"""
         projects = Project.objects.filter(status='completed')
         serializer = self.get_serializer(projects, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
     def add_team_member(self, request, pk=None):
-        """Добавить участника в команду проекта"""
         project = self.get_object()
         employee_id = request.data.get('employee_id')
         if employee_id:
@@ -196,7 +162,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def tasks(self, request, pk=None):
-        """Получить задачи проекта"""
         project = self.get_object()
         tasks = Task.objects.filter(project=project)
         serializer = TaskSerializer(tasks, many=True)
@@ -206,32 +171,28 @@ class ProjectViewSet(viewsets.ModelViewSet):
 # ==================== ОТПУСКА ====================
 
 class VacationViewSet(viewsets.ModelViewSet):
-    """ViewSet для управления заявками на отпуск"""
     queryset = Vacation.objects.all()
     serializer_class = VacationSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['employee', 'status']
-    search_fields = ['employee__full_name', 'reason']
+    search_fields = ['reason']
     ordering_fields = ['start_date', 'created_at']
 
     @action(detail=False, methods=['get'])
     def pending(self, request):
-        """Получить заявки на рассмотрении"""
         vacations = Vacation.objects.filter(status='pending')
         serializer = self.get_serializer(vacations, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def approved(self, request):
-        """Получить одобренные заявки"""
         vacations = Vacation.objects.filter(status='approved')
         serializer = self.get_serializer(vacations, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
-        """Одобрить заявку на отпуск"""
         vacation = self.get_object()
         vacation.status = 'approved'
         vacation.save()
@@ -239,7 +200,6 @@ class VacationViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def reject(self, request, pk=None):
-        """Отклонить заявку на отпуск"""
         vacation = self.get_object()
         vacation.status = 'rejected'
         vacation.save()
@@ -249,44 +209,61 @@ class VacationViewSet(viewsets.ModelViewSet):
 # ==================== ЗАДАЧИ ====================
 
 class TaskViewSet(viewsets.ModelViewSet):
-    """ViewSet для управления задачами"""
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['employee', 'project', 'priority', 'status']
+    filterset_fields = ['employee', 'priority', 'status']
     search_fields = ['title', 'description']
     ordering_fields = ['priority', 'due_date', 'created_at']
 
     @action(detail=False, methods=['get'])
     def urgent(self, request):
-        """Получить срочные задачи"""
         tasks = Task.objects.filter(priority__in=['high', 'urgent'])
         serializer = self.get_serializer(tasks, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
     def overdue(self, request):
-        """Получить просроченные задачи"""
-        tasks = Task.objects.filter(due_date__lt=date.today(), status__in=['todo', 'in_progress'])
+        tasks = Task.objects.filter(due_date__lt=date.today(), status__in=['todo', 'inprogress'])
         serializer = self.get_serializer(tasks, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
-        """Отметить задачу как выполненную"""
         task = self.get_object()
         task.status = 'done'
-        task.completed_at = date.today()
         task.save()
         return Response({'message': 'Задача выполнена'})
 
     @action(detail=False, methods=['get'])
     def by_employee(self, request):
-        """Получить задачи по сотруднику"""
         employee_id = request.query_params.get('employee_id')
         if employee_id:
             tasks = Task.objects.filter(employee_id=employee_id)
             serializer = self.get_serializer(tasks, many=True)
             return Response(serializer.data)
         return Response({'error': 'Укажите employee_id'}, status=400)
+
+
+# ==================== КОМАНДЫ ====================
+
+class TeamViewSet(viewsets.ModelViewSet):
+    queryset = Team.objects.all()
+    serializer_class = TeamSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['manager']
+    search_fields = ['name', 'description']
+    ordering_fields = ['name', 'created_at']
+
+    def perform_create(self, serializer):
+        team = serializer.save()
+        # Добавляем менеджера в участники автоматически
+        team.members.add(team.manager)
+
+    def get_queryset(self):
+        user = self.request.user
+        return Team.objects.filter(
+            models.Q(members=user) | models.Q(manager=user)
+        ).distinct()

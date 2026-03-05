@@ -5,52 +5,139 @@
 <div class="page-header">
     <div class="page-icon"><i class="bi bi-person-circle"></i></div>
     <div class="page-title">
-        <h1>Мой профиль</h1>
+        <h1>Мой аккаунт</h1>
         <p>Личная информация и настройки аккаунта</p>
     </div>
 </div>
 
-<div class="row justify-content-center">
-    <div class="col-lg-6 col-md-8">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body text-center p-5">
-                <!-- Аватарка -->
-                <div class="avatar-circle mx-auto mb-4" style="width: 120px; height: 120px; font-size: 3rem;">
-                    {{ user.username|first|upper }}
-                </div>
-
-                <!-- Имя и роль -->
-                <h3 class="mb-1 fw-bold">{{ user.get_full_name|default:user.username }}</h3>
-                <span class="badge bg-secondary mb-4 px-3 py-2">{{ user.get_role_display }}</span>
-
-                <hr class="my-4 w-50 mx-auto">
-
-                <!-- Детали -->
-                <div class="text-start px-md-5">
-                    <div class="mb-4">
-                        <small class="text-muted d-block text-uppercase fw-bold mb-1" style="font-size: 0.75rem;">Email</small>
-                        <div class="fs-5">{{ user.email }}</div>
-                    </div>
-
-                    <div class="mb-4">
-                        <small class="text-muted d-block text-uppercase fw-bold mb-1" style="font-size: 0.75rem;">Дата регистрации</small>
-                        <div class="fs-5">{{ user.date_joined|date:"d E Y" }}</div>
-                    </div>
-
-                    {% if user.phone %}
-                    <div class="mb-4">
-                        <small class="text-muted d-block text-uppercase fw-bold mb-1" style="font-size: 0.75rem;">Телефон</small>
-                        <div class="fs-5">{{ user.phone }}</div>
-                    </div>
-                    {% endif %}
-                </div>
+<div class="row g-4">
+    <!-- Левая колонка -->
+    <div class="col-lg-4">
+        <!-- Карточка пользователя -->
+        <div class="card border-0 shadow-sm text-center p-4 mb-4">
+            <div class="avatar-circle mx-auto mb-3" style="width: 100px; height: 100px; font-size: 2.5rem;">
+                {{ user.username|first|upper }}
             </div>
-            <div class="card-footer bg-white border-0 text-center pb-4">
-                 <a href="{% url 'dashboard_manager' %}" class="btn-custom btn-outline-custom px-4">
-                    <i class="bi bi-arrow-left me-2"></i> Вернуться на дашборд
-                </a>
+            <h4 class="fw-bold mb-1">{{ user.get_full_name|default:user.username }}</h4>
+            <span class="badge bg-secondary px-3 py-2 mb-2">{{ user.get_role_display }}</span>
+            {% if user.email %}
+            <div class="text-muted small">{{ user.email }}</div>
+            {% endif %}
+            {% if user.phone %}
+            <div class="text-muted small mt-1"><i class="bi bi-telephone me-1"></i>{{ user.phone }}</div>
+            {% endif %}
+            <div class="text-muted small mt-1">
+                <i class="bi bi-calendar me-1"></i>С {{ user.date_joined|date:"d.m.Y" }}
             </div>
         </div>
+
+        <!-- Мои навыки -->
+        <div class="card border-0 shadow-sm p-4 mb-4">
+            <h6 class="fw-bold text-uppercase text-muted mb-3" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                <i class="bi bi-stars me-2"></i>Мои навыки
+            </h6>
+            {% if user_skills %}
+                {% for es in user_skills %}
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-medium small">{{ es.skill.name }}</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge rounded-pill
+                            {% if es.level == 'advanced' %}bg-success
+                            {% elif es.level == 'intermediate' %}bg-primary
+                            {% else %}bg-secondary{% endif %}
+                            text-white px-2">
+                            {{ es.get_level_display }}
+                        </span>
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="remove_skill">
+                            <input type="hidden" name="skill_id" value="{{ es.skill.id }}">
+                            <button type="submit" class="btn btn-sm btn-link text-danger p-0"
+                                    onclick="return confirm('Удалить навык?')">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted small">Навыки не указаны</p>
+            {% endif %}
+        </div>
+
+        <!-- Добавить навык -->
+        {% if available_skills %}
+        <div class="card border-0 shadow-sm p-4">
+            <h6 class="fw-bold text-uppercase text-muted mb-3" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                <i class="bi bi-plus-circle me-2"></i>Добавить навык
+            </h6>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_skill">
+                <div class="mb-2">
+                    <select name="skill_id" class="form-select form-select-sm" required>
+                        <option value="">Выберите навык</option>
+                        {% for skill in available_skills %}
+                        <option value="{{ skill.id }}">{{ skill.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <select name="level" class="form-select form-select-sm">
+                        <option value="basic">Basic</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-custom btn-navy w-100 btn-sm">
+                    <i class="bi bi-plus-lg me-1"></i> Добавить
+                </button>
+            </form>
+        </div>
+        {% endif %}
     </div>
+
+    <!-- Правая колонка -->
+    <div class="col-lg-8">
+        <!-- Редактирование профиля -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-pencil-square me-2"></i>Редактировать профиль</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_profile">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Имя</label>
+                            <input type="text" name="first_name" class="form-control"
+                                   value="{{ user.first_name }}" placeholder="Имя">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Фамилия</label>
+                            <input type="text" name="last_name" class="form-control"
+                                   value="{{ user.last_name }}" placeholder="Фамилия">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email</label>
+                            <input type="email" name="email" class="form-control"
+                                   value="{{ user.email }}" placeholder="Email">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Телефон</label>
+                            <input type="text" name="phone" class="form-control"
+                                   value="{{ user.phone }}" placeholder="+7 (999) ...">
+                        </div>
+                        <div class="col-12 mt-3">
+                            <button type="submit" class="btn-custom btn-black px-4">
+                                <i class="bi bi-check-lg me-2"></i>Сохранить изменения
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        </div>
 </div>
 {% endblock %}

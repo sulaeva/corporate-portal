@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Заявка на отпуск{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-icon"><i class="bi bi-calendar-check"></i></div>
+    <div class="page-title">
+        <h1>Заявка на отпуск</h1>
+        <p>Заполните форму для подачи заявки</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Дата начала</label>
+                        <input type="date" name="start_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Дата окончания</label>
+                        <input type="date" name="end_date" class="form-control" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Причина (необязательно)</label>
+                        <textarea name="reason" class="form-control" rows="3" placeholder="Укажите причину..."></textarea>
+                    </div>
+                    <button type="submit" class="btn-custom btn-black w-100">
+                        <i class="bi bi-send me-2"></i>Отправить заявку
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

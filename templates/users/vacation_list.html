@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Заявки на отпуск{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-icon"><i class="bi bi-calendar3"></i></div>
+    <div class="page-title">
+        <h1>Заявки на отпуск</h1>
+        <p>Управление заявками сотрудников</p>
+    </div>
+    {% if pending_count %}
+    <div class="ms-auto">
+        <span class="badge bg-warning text-dark px-3 py-2 fs-6">
+            <i class="bi bi-hourglass-split me-1"></i>Ожидают: {{ pending_count }}
+        </span>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        {% if vacations %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4 py-3 text-muted text-uppercase" style="font-size:0.75rem;">Сотрудник</th>
+                        <th class="py-3 text-muted text-uppercase" style="font-size:0.75rem;">Период</th>
+                        <th class="py-3 text-muted text-uppercase" style="font-size:0.75rem;">Причина</th>
+                        <th class="py-3 text-muted text-uppercase" style="font-size:0.75rem;">Статус</th>
+                        <th class="py-3 text-muted text-uppercase" style="font-size:0.75rem;">Действие</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in vacations %}
+                    <tr class="border-bottom">
+                        <td class="ps-4 py-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-light border rounded-circle d-flex justify-content-center align-items-center me-2"
+                                     style="width:32px;height:32px;font-weight:600;font-size:0.85rem;">
+                                    {{ v.employee.username|first|upper }}
+                                </div>
+                                <div>
+                                    <div class="fw-medium">{{ v.employee.get_full_name|default:v.employee.username }}</div>
+                                    <small class="text-muted">{{ v.employee.get_role_display }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3 fw-medium">
+                            {{ v.start_date|date:"d.m.Y" }} — {{ v.end_date|date:"d.m.Y" }}
+                        </td>
+                        <td class="py-3 text-muted small">
+                            {{ v.reason|default:"—"|truncatechars:40 }}
+                        </td>
+                        <td class="py-3">
+                            {% if v.status == 'approved' %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
+                                    <i class="bi bi-check-lg me-1"></i>Одобрено
+                                </span>
+                            {% elif v.status == 'rejected' %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill">
+                                    <i class="bi bi-x-lg me-1"></i>Отклонено
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-2 rounded-pill">
+                                    <i class="bi bi-hourglass-split me-1"></i>Ожидает
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3">
+                            {% if v.status == 'pending' %}
+                            <a href="{% url 'vacation_approve' v.pk %}"
+                               class="btn btn-sm btn-outline-success me-1"
+                               onclick="return confirm('Одобрить заявку?')">
+                                <i class="bi bi-check-lg"></i> Одобрить
+                            </a>
+                            <a href="{% url 'vacation_reject' v.pk %}"
+                               class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('Отклонить заявку?')">
+                                <i class="bi bi-x-lg"></i> Отклонить
+                            </a>
+                            {% else %}
+                            <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-calendar-x display-1 text-muted opacity-25 mb-3"></i>
+            <h5 class="text-muted">Заявок пока нет</h5>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

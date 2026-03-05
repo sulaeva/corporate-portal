@@ -4,12 +4,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .forms import UserRegistrationForm
 from .models import User
-from employees.models import Department, Employee
+from employees.models import Department, Employee, EmployeeSkill, Skill
 from tasks.models import Task
 from teams.models import Team
-from django.db.models import Q # Важно для сложного поиска
-from employees.models import EmployeeSkill
-
+from django.db.models import Q
 
 
 def register(request):
@@ -21,7 +19,6 @@ def register(request):
                 user.is_staff = True
             user.save()
 
-            # ✅ Сохраняем навыки
             selected_skills = form.cleaned_data.get('skills', [])
             level = form.cleaned_data.get('skill_level', 'basic')
             for skill in selected_skills:
@@ -48,7 +45,6 @@ def register(request):
     return render(request, 'users/register.html', {'form': form})
 
 
-# --- Вход в систему (Login) ---
 def user_login(request):
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -57,8 +53,6 @@ def user_login(request):
 
         if user is not None:
             login(request, user)
-
-            # ✅ АВТОМАТИЧЕСКИЙ РЕДИРЕКТ ПО РОЛИ
             if user.role == 'director':
                 return redirect('dashboard_director')
             elif user.role == 'manager':
@@ -73,14 +67,9 @@ def user_login(request):
     return render(request, 'users/login.html')
 
 
-# --- Главный роутер (Dashboard) ---
 @login_required
 def dashboard(request):
-    """
-    Перенаправляет пользователя на страницу его роли.
-    """
     user = request.user
-
     if user.role == 'director':
         return redirect('dashboard_director')
     elif user.role == 'manager':
@@ -89,51 +78,39 @@ def dashboard(request):
         return redirect('dashboard_employee')
 
 
-# --- Dashboard Директора ---
 @login_required
 def dashboard_director(request):
-    # ✅ СТРОГАЯ ПРОВЕРКА: Только директор
     if request.user.role != 'director':
-        messages.error(request, "У вас нет доступа к этому разделу. Только для Директора.")
+        messages.error(request, "У вас нет доступа к этому разделу.")
         return redirect('dashboard')
 
     stats = {
-        'total_users': User.objects.count(),  # Исправлено: считаем всех пользователей
+        'total_users': User.objects.count(),
         'total_employees': User.objects.filter(role='employee').count(),
         'total_managers': User.objects.filter(role='manager').count(),
         'total_tasks': Task.objects.count(),
         'tasks_done': Task.objects.filter(status='done').count(),
     }
     tasks = Task.objects.all()[:5]
-
     context = {'stats': stats, 'tasks': tasks}
     return render(request, 'users/dashboard_director.html', context)
 
 
 @login_required
 def dashboard_manager(request):
-    # 1. ВСЕ задачи менеджера
     all_manager_tasks = Task.objects.filter(manager=request.user)
     total_all = all_manager_tasks.count()
-
-    # 2. Активные (не выполненные)
-    # Мы используем exclude(status='done'), так как это стандарт
     active_count = all_manager_tasks.exclude(status='done').count()
-
-    # 3. Выполненные = ВСЕ - АКТИВНЫЕ
-    # Это железобетонный способ, который сработает даже если статус называется криво
     done_count = total_all - active_count
-
     teams_count = Team.objects.filter(manager=request.user).count()
 
     stats = {
         'total_users': User.objects.count(),
         'total_employees': User.objects.filter(role='employee').count(),
         'total_tasks': active_count,
-        'tasks_done': done_count, # Теперь тут точно будет 2
+        'tasks_done': done_count,
         'my_teams_count': teams_count,
     }
-
     context = {'stats': stats}
     return render(request, 'users/dashboard_manager.html', context)
 
@@ -144,16 +121,10 @@ def dashboard_employee(request):
         messages.error(request, "У вас нет доступа к этому разделу.")
         return redirect('dashboard')
 
-    # ✅ Только активные задачи (не выполненные)
-    my_tasks = Task.objects.filter(employee=request.user).exclude(status='done')
-
-    context = {
-        'my_tasks': my_tasks,
-    }
+    context = {}
     return render(request, 'users/dashboard_employee.html', context)
 
 
-# --- Выход ---
 @login_required
 def logout_view(request):
     logout(request)
@@ -162,7 +133,6 @@ def logout_view(request):
 
 @login_required
 def users_list(request):
-    # Показываем ВСЕХ пользователей
     users = User.objects.all().order_by('-date_joined')
     context = {'users': users}
     return render(request, 'users/users_list.html', context)
@@ -177,13 +147,12 @@ def staff_list(request):
         'tasks_done': Task.objects.filter(manager=request.user, status='done').count(),
     }
 
-    # Для сотрудника показываем только коллег-сотрудников
     if request.user.role == 'employee':
         context = {
             'developers': User.objects.filter(role='employee').order_by('username'),
-            'managers': None,  # ← не передаём менеджеров
+            'managers': None,
             'stats': stats,
-            'is_employee_view': True,  # ← флаг для шаблона
+            'is_employee_view': True,
         }
     else:
         context = {
@@ -192,7 +161,6 @@ def staff_list(request):
             'stats': stats,
             'is_employee_view': False,
         }
-
     return render(request, 'users/staff_list.html', context)
 
 
@@ -202,7 +170,6 @@ def global_search(request):
     users = []
 
     if query:
-        # Ищем по логину, имени, фамилии или email
         users = User.objects.filter(
             Q(username__icontains=query) |
             Q(first_name__icontains=query) |
@@ -213,19 +180,57 @@ def global_search(request):
     context = {
         'query': query,
         'users': users,
-        'stats': {}  # Если в base.html требуется контекст stats, передай пустой или реальный
+        'stats': {}
     }
     return render(request, 'users/search_results.html', context)
 
 
 @login_required
 def profile(request):
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'update_profile':
+            user = request.user
+            user.first_name = request.POST.get('first_name', '').strip()
+            user.last_name = request.POST.get('last_name', '').strip()
+            user.email = request.POST.get('email', '').strip()
+            user.phone = request.POST.get('phone', '').strip()
+            user.save()
+            messages.success(request, 'Профиль обновлён!')
+
+        elif action == 'add_skill':
+            skill_id = request.POST.get('skill_id')
+            level = request.POST.get('level', 'basic')
+            if skill_id:
+                skill = Skill.objects.filter(id=skill_id).first()
+                if skill:
+                    if not EmployeeSkill.objects.filter(employee=request.user, skill=skill).exists():
+                        EmployeeSkill.objects.create(employee=request.user, skill=skill, level=level)
+                        messages.success(request, f'Навык "{skill.name}" добавлен!')
+                    else:
+                        messages.warning(request, 'У вас уже есть этот навык')
+
+        elif action == 'remove_skill':
+            skill_id = request.POST.get('skill_id')
+            if skill_id:
+                EmployeeSkill.objects.filter(employee=request.user, skill_id=skill_id).delete()
+                messages.success(request, 'Навык удалён')
+
+        return redirect('profile')
+
     managed_teams = Team.objects.filter(manager=request.user)
     member_teams = Team.objects.filter(members=request.user)
+    user_skills = EmployeeSkill.objects.filter(employee=request.user).select_related('skill')
+    available_skills = Skill.objects.exclude(
+        id__in=user_skills.values_list('skill_id', flat=True)
+    )
 
     context = {
         'managed_teams': managed_teams,
         'member_teams': member_teams,
-        'stats': {}  # Пустая статистика, чтобы не ломался base.html
+        'user_skills': user_skills,
+        'available_skills': available_skills,
+        'stats': {}
     }
     return render(request, 'users/profile.html', context)

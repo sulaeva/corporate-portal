@@ -208,45 +208,38 @@ def task_change_status(request, pk, new_status):
 
     # ✅ Редирект по роли
     if request.user.role == 'employee':
-        return redirect('dashboard_employee')
+        return redirect('task_list')
     elif request.user.role == 'manager':
-        return redirect('dashboard_manager')
+        return redirect('task_list')
     else:
-        return redirect('dashboard_director')
+        return redirect('task_list')
 
 
 
 @login_required
 def task_done_list(request):
-    """Показывает ТОЛЬКО выполненные задачи"""
-    tasks = Task.objects.filter(status='done').order_by('-updated_at')
+    if request.user.role == 'employee':
+        tasks = Task.objects.filter(employee=request.user, status='done').order_by('-updated_at')
+    elif request.user.role == 'manager':
+        tasks = Task.objects.filter(manager=request.user, status='done').order_by('-updated_at')
+    else:
+        tasks = Task.objects.filter(status='done').order_by('-updated_at')
     context = {'tasks': tasks}
     return render(request, 'tasks/task_done_list.html', context)
 
 
 @role_required(['director', 'manager'])
 def employee_tasks(request, employee_id, team_id):
-    """
-    Универсальная страница: задачи конкретного сотрудника в конкретной команде.
-    """
-    # Получаем объекты
     employee = get_object_or_404(User, id=employee_id)
     team = get_object_or_404(Team, id=team_id)
 
-    # Фильтруем задачи: Этот сотрудник И Эта команда И Не выполненные
-    tasks = Task.objects.filter(employee=employee, team=team).exclude(status='done').order_by('-created_at')
+    # ✅ Показываем ВСЕ задачи включая выполненные
+    tasks = Task.objects.filter(employee=employee, team=team).order_by('-created_at')
 
-    if not tasks.exists():
-        # Если задач нет, перекидываем на создание с автозаполнением
-        messages.info(request,
-                      f'У сотрудника {employee.username} в этой команде пока нет активных задач. Создайте первую.')
-        return redirect('task_create', employee_id=employee_id, team_id=team_id)
-
-    # Если задачи есть, показываем список
     context = {
         'tasks': tasks,
         'employee': employee,
         'team': team,
-        'page_title': f'Задачи: {employee.username} ({team.name})'
+        'page_title': f'Задачи: {employee.get_full_name() or employee.username} ({team.name})'
     }
     return render(request, 'tasks/employee_tasks_list.html', context)

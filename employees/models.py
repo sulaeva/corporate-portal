@@ -151,3 +151,42 @@ class Vacation(models.Model):
 
     def __str__(self):
         return f"{self.employee.username} - {self.start_date} до {self.end_date}"
+
+class Meeting(models.Model):
+    title = models.CharField(max_length=200, verbose_name="Тема встречи")
+    description = models.TextField(blank=True, verbose_name="Описание")
+    date = models.DateField(verbose_name="Дата")
+    time = models.TimeField(verbose_name="Время")
+    location = models.CharField(max_length=200, blank=True, verbose_name="Место")
+    organizer = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='organized_meetings', verbose_name="Организатор"
+    )
+    participants = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name='meetings', blank=True,
+        verbose_name="Участники"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Встреча"
+        verbose_name_plural = "Встречи"
+        ordering = ['date', 'time']
+
+    def __str__(self):
+        return f"{self.title} — {self.date} {self.time}"
+
+class MeetingRead(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='meeting_reads'
+    )
+    meeting = models.ForeignKey(
+        Meeting, on_delete=models.CASCADE,
+        related_name='reads'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['user', 'meeting']

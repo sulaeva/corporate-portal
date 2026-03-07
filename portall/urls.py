@@ -25,31 +25,30 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-
     path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
 
-
-    path('', include('users.urls')),  # Dashboard по ролям
-    path('tasks/', include('tasks.urls')),  # Задачи
-    path('teams/', include('teams.urls')),  # Команды
-
+    path('', include('users.urls')),
+    path('tasks/', include('tasks.urls')),
+    path('teams/', include('teams.urls')),
 
     path('api/', include('employees.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-]
 
+    # Swagger
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+]
 
 if settings.DEBUG:
     urlpatterns += static('/static/', document_root=BASE_DIR / 'frontend')
     urlpatterns += static('/frontend/', document_root=BASE_DIR / 'frontend')
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-

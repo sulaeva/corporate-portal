@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Назначить встречу{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="page-icon"><i class="bi bi-calendar-plus"></i></div>
+    <div class="page-title">
+        <h1>Назначить встречу</h1>
+        <p>Создайте встречу и пригласите участников</p>
+    </div>
+    <div class="ms-auto">
+        <a href="{% url 'meeting_list' %}" class="btn-custom btn-outline-custom">
+            <i class="bi bi-arrow-left me-2"></i>Назад
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Тема встречи</label>
+                        <input type="text" name="title" class="form-control" placeholder="Например: Планёрка команды" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Описание</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="Повестка встречи..."></textarea>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Дата</label>
+                            <input type="date" name="date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Время</label>
+                            <input type="time" name="time" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Место</label>
+                        <input type="text" name="location" class="form-control" placeholder="Переговорная / Zoom / ...">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Участники</label>
+                        <div class="border rounded p-3" style="max-height:200px;overflow-y:auto;">
+                            {% for u in users %}
+                            <div class="form-check mb-1">
+                                <input class="form-check-input" type="checkbox"
+                                       name="participants" value="{{ u.id }}" id="user_{{ u.id }}">
+                                <label class="form-check-label small" for="user_{{ u.id }}">
+                                    <span class="fw-medium">{{ u.get_full_name|default:u.username }}</span>
+                                    <span class="text-muted">({{ u.get_role_display }})</span>
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-custom btn-black w-100">
+                        <i class="bi bi-calendar-check me-2"></i>Создать встречу
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

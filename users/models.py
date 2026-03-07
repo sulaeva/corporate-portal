@@ -43,3 +43,9 @@ class User(AbstractUser):
 
     def is_employee(self):
         return self.role == 'employee'
+
+    def save(self, *args, **kwargs):
+        if self.is_superuser:
+            self.role = 'director'
+            self.is_staff = True
+        super().save(*args, **kwargs)

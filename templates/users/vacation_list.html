@@ -8,13 +8,16 @@
         <h1>Заявки на отпуск</h1>
         <p>Управление заявками сотрудников</p>
     </div>
-    {% if pending_count %}
-    <div class="ms-auto">
-        <span class="badge bg-warning text-dark px-3 py-2 fs-6">
-            <i class="bi bi-hourglass-split me-1"></i>Ожидают: {{ pending_count }}
-        </span>
-    </div>
-    {% endif %}
+    <div class="ms-auto d-flex align-items-center gap-3">
+            {% if pending_count %}
+            <span class="badge bg-warning text-dark px-3 py-2 fs-6">
+                <i class="bi bi-hourglass-split me-1"></i>Ожидают: {{ pending_count }}
+            </span>
+            {% endif %}
+            <a href="{% url 'vacation_request' %}" class="btn-custom btn-black">
+                <i class="bi bi-plus-lg me-2"></i>Подать заявку
+            </a>
+        </div>
 </div>
 
 <div class="card border-0 shadow-sm">

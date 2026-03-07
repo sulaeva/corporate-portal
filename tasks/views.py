@@ -243,3 +243,4 @@ def employee_tasks(request, employee_id, team_id):
         'page_title': f'Задачи: {employee.get_full_name() or employee.username} ({team.name})'
     }
     return render(request, 'tasks/employee_tasks_list.html', context)
+

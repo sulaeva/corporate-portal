@@ -194,6 +194,12 @@
                     </a>
                 </li>
 
+                <li>
+                    <a href="{% url 'meeting_list' %}" class="{% if request.resolver_match.url_name == 'meeting_list' or request.resolver_match.url_name == 'meeting_create' %}active{% endif %}">
+                        <div class="link-content"><i class="bi bi-calendar-event"></i> Встречи</div>
+                    </a>
+                </li>
+
                 {% else %}
                 <!-- МЕНЮ ДЛЯ СОТРУДНИКА -->
 
@@ -218,6 +224,12 @@
                 <li>
                     <a href="{% url 'my_vacations' %}" class="{% if request.resolver_match.url_name == 'my_vacations' or request.resolver_match.url_name == 'vacation_request' %}active{% endif %}">
                         <div class="link-content"><i class="bi bi-calendar-check"></i> Отпуск</div>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="{% url 'meeting_list' %}" class="{% if request.resolver_match.url_name == 'meeting_list' %}active{% endif %}">
+                        <div class="link-content"><i class="bi bi-calendar-event"></i> Встречи</div>
                     </a>
                 </li>
 

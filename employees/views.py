@@ -23,6 +23,14 @@ from .serializers import (
     TeamSerializer,
 )
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import Meeting
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
 
 # ==================== ПОЛЬЗОВАТЕЛЬ ====================
 
@@ -267,3 +275,57 @@ class TeamViewSet(viewsets.ModelViewSet):
         return Team.objects.filter(
             models.Q(members=user) | models.Q(manager=user)
         ).distinct()
+
+
+
+@login_required
+def meeting_create(request):
+    if request.user.role != 'director':
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '').strip()
+        date = request.POST.get('date')
+        time = request.POST.get('time')
+        location = request.POST.get('location', '').strip()
+        participant_ids = request.POST.getlist('participants')
+
+        if not title or not date or not time:
+            messages.error(request, 'Заполните тему, дату и время')
+        else:
+            meeting = Meeting.objects.create(
+                title=title,
+                description=description,
+                date=date,
+                time=time,
+                location=location,
+                organizer=request.user
+            )
+            if participant_ids:
+                meeting.participants.set(participant_ids)
+            messages.success(request, f'Встреча "{title}" создана!')
+            return redirect('meeting_list')
+
+    users = User.objects.exclude(id=request.user.id).order_by('role', 'username')
+    return render(request, 'employees/meeting_create.html', {'users': users})
+
+
+@login_required
+def meeting_list(request):
+    if request.user.role == 'director':
+        meetings = Meeting.objects.filter(organizer=request.user).prefetch_related('participants')
+    else:
+        meetings = Meeting.objects.filter(participants=request.user).prefetch_related('participants')
+
+    return render(request, 'employees/meeting_list.html', {'meetings': meetings})
+
+
+@login_required
+def meeting_delete(request, pk):
+    if request.user.role != 'director':
+        return redirect('dashboard')
+    meeting = get_object_or_404(Meeting, pk=pk)
+    meeting.delete()
+    messages.success(request, 'Встреча удалена')
+    return redirect('meeting_list')

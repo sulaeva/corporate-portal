@@ -15,4 +15,232 @@
         <p>Панель управления <strong>Менеджера</strong>. Контролируйте свои команды и задачи.</p>
     </div>
 </div>
+
+{% if my_meetings %}
+<div class="alert border-0 shadow-sm mb-4" style="background:#e7f1ff;">
+    <div class="d-flex align-items-start">
+        <i class="bi bi-bell-fill me-3 fs-5 text-primary mt-1"></i>
+        <div class="flex-grow-1">
+            <div class="fw-bold mb-2">Вас пригласили на встречу:</div>
+            {% for m in my_meetings %}
+            <div class="d-flex align-items-center mb-2 flex-wrap gap-2">
+                <span class="badge bg-primary rounded-pill">{{ m.date|date:"d.m.Y" }} {{ m.time|time:"H:i" }}</span>
+                <span class="fw-medium small">{{ m.title }}</span>
+                {% if m.location %}
+                <span class="text-muted small"><i class="bi bi-geo-alt me-1"></i>{{ m.location }}</span>
+                {% endif %}
+                <span class="text-muted small">— {{ m.organizer.get_full_name|default:m.organizer.username }}</span>
+                <a href="{% url 'meeting_read' m.pk %}" class="btn btn-sm btn-outline-secondary ms-auto" style="font-size:0.75rem;">
+                    <i class="bi bi-check2 me-1"></i>Прочитано
+                </a>
+            </div>
+            {% endfor %}
+            <a href="{% url 'meeting_list' %}" class="small text-primary mt-1 d-inline-block">Смотреть все встречи →</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-4 mt-2">
+
+    <!-- Блок 1: Время и мотивация -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4 d-flex flex-column justify-content-center text-center">
+                <div id="current-time" class="display-6 fw-bold text-dark mb-1"></div>
+                <div id="current-date" class="text-muted mb-3"></div>
+                <hr>
+                <div id="motivation-text" class="fst-italic text-muted small px-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Блок 2: Календарь -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <button class="btn btn-sm btn-outline-secondary" id="prevMonth"><i class="bi bi-chevron-left"></i></button>
+                <h6 class="mb-0 fw-bold" id="calendarTitle"></h6>
+                <button class="btn btn-sm btn-outline-secondary" id="nextMonth"><i class="bi bi-chevron-right"></i></button>
+            </div>
+            <div class="card-body p-4">
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Модальное окно заметки -->
+<div id="noteModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:8px;padding:24px;width:400px;max-width:90%;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0 fw-bold" id="modal-date-title"></h6>
+            <button onclick="closeModal()" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x"></i></button>
+        </div>
+        <textarea id="modal-note-text" class="form-control mb-3"
+                  placeholder="Напишите заметку..."
+                  style="min-height:120px;resize:none;font-size:0.9rem;"></textarea>
+        <div class="d-flex gap-2">
+            <button onclick="saveNote()" class="btn-custom btn-navy flex-grow-1">
+                <i class="bi bi-check-lg me-1"></i> Сохранить
+            </button>
+            <button id="modal-delete-btn" onclick="deleteNote()" class="btn btn-outline-danger" style="display:none;">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateTime() {
+        const now = new Date();
+        const timeEl = document.getElementById('current-time');
+        const dateEl = document.getElementById('current-date');
+        if (timeEl) timeEl.textContent = now.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'});
+        if (dateEl) dateEl.textContent = now.toLocaleDateString('ru-RU', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
+    }
+    updateTime();
+    setInterval(updateTime, 1000);
+
+    const phrases = [
+        "Великие дела начинаются с маленьких шагов.",
+        "Каждый день — новая возможность стать лучше.",
+        "Успех — это сумма небольших усилий каждый день.",
+        "Лучший способ начать — это начать.",
+        "Вы управляете командой. Команда движется вперёд.",
+        "Хороший менеджер вдохновляет, а не командует.",
+        "Сегодня хороший день чтобы сделать что-то великое.",
+    ];
+    const motivEl = document.getElementById('motivation-text');
+    if (motivEl) motivEl.textContent = '"' + phrases[Math.floor(Math.random() * phrases.length)] + '"';
+
+    let currentDate = new Date();
+    let selectedDate = null;
+
+    function getNoteKey(dateStr) {
+        return 'note_mgr_' + dateStr;
+    }
+
+    function formatDate(y, m, d) {
+        return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    }
+
+    function renderCalendar() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const today = new Date();
+
+        document.getElementById('calendarTitle').textContent =
+            currentDate.toLocaleDateString('ru-RU', {month: 'long', year: 'numeric'});
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const startDay = firstDay === 0 ? 6 : firstDay - 1;
+
+        let html = '<table style="width:100%;border-collapse:collapse;">';
+        html += '<tr>';
+        ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'].forEach(d => {
+            html += `<th style="text-align:center;padding:8px 4px;color:#718096;font-weight:600;font-size:0.8rem;">${d}</th>`;
+        });
+        html += '</tr><tr>';
+
+        let cellCount = startDay;
+        for (let i = 0; i < startDay; i++) html += '<td></td>';
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = formatDate(year, month, day);
+            const hasNote = localStorage.getItem(getNoteKey(dateStr));
+            const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+            const isSelected = selectedDate === dateStr;
+
+            let tdStyle = 'text-align:center;padding:8px 4px;cursor:pointer;position:relative;';
+            let innerStyle = 'display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;font-size:0.9rem;';
+
+            if (isSelected) {
+                innerStyle += 'background:#1E3A5F;color:white;font-weight:700;';
+            } else if (isToday) {
+                innerStyle += 'background:#e7f1ff;color:#1E3A5F;font-weight:700;';
+            }
+
+            let underline = hasNote
+                ? `<div style="width:6px;height:6px;background:#1E3A5F;border-radius:50%;margin:0 auto;margin-top:2px;"></div>`
+                : '<div style="width:6px;height:6px;margin:0 auto;margin-top:2px;"></div>';
+
+            html += `<td style="${tdStyle}" onclick="openModal('${dateStr}')">
+                        <div style="${innerStyle}">${day}</div>
+                        ${underline}
+                     </td>`;
+
+            cellCount++;
+            if (cellCount % 7 === 0 && day < daysInMonth) html += '</tr><tr>';
+        }
+
+        html += '</tr></table>';
+        document.getElementById('calendar').innerHTML = html;
+    }
+
+    function openModal(dateStr) {
+        selectedDate = dateStr;
+        const note = localStorage.getItem(getNoteKey(dateStr)) || '';
+        const parts = dateStr.split('-');
+        const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+        document.getElementById('modal-date-title').textContent =
+            '📅 ' + dateObj.toLocaleDateString('ru-RU', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'});
+        document.getElementById('modal-note-text').value = note;
+        document.getElementById('modal-delete-btn').style.display = note ? 'inline-flex' : 'none';
+        document.getElementById('noteModal').style.display = 'flex';
+        renderCalendar();
+    }
+
+    function closeModal() {
+        document.getElementById('noteModal').style.display = 'none';
+        selectedDate = null;
+        renderCalendar();
+    }
+
+    function saveNote() {
+        const text = document.getElementById('modal-note-text').value.trim();
+        if (text) {
+            localStorage.setItem(getNoteKey(selectedDate), text);
+        } else {
+            localStorage.removeItem(getNoteKey(selectedDate));
+        }
+        closeModal();
+    }
+
+    function deleteNote() {
+        if (confirm('Удалить заметку?')) {
+            localStorage.removeItem(getNoteKey(selectedDate));
+            closeModal();
+        }
+    }
+
+    document.getElementById('noteModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    document.getElementById('prevMonth').onclick = () => {
+        currentDate.setMonth(currentDate.getMonth() - 1);
+        renderCalendar();
+    };
+    document.getElementById('nextMonth').onclick = () => {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        renderCalendar();
+    };
+
+    // Автоматически добавляем встречи как заметки в календарь
+    const meetingsData = [
+        {% for m in my_meetings %}
+        { date: "{{ m.date|date:'Y-m-d' }}", title: "{{ m.title }}", time: "{{ m.time|time:'H:i' }}", location: "{{ m.location }}" },
+        {% endfor %}
+    ];
+    meetingsData.forEach(function(m) {
+        const key = getNoteKey(m.date);
+        const noteText = '📅 Встреча: ' + m.title + '\n🕐 ' + m.time + '\n📍 ' + (m.location || 'Место не указано');
+        localStorage.setItem(key, noteText);
+    });
+
+    renderCalendar();
+</script>
 {% endblock %}
